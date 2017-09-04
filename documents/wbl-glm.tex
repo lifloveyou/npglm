@@ -1,0 +1,63 @@
+\documentclass[]{article}
+\usepackage[parfill]{parskip}
+\usepackage{amsmath}
+\title{Weibull GLM Formulations}
+\author{Sina Sajadmanesh}
+
+\begin{document}
+
+\maketitle
+
+Weibull distribution:
+\[f_T(t)=\frac{\alpha t^{\alpha-1}}{\beta^\alpha}\exp\left\lbrace-(\frac{t}{\beta})^\alpha\right\rbrace\quad,\quad\alpha=shape\quad,\quad\beta=scale\]
+\[S(t)=\exp\left\lbrace-(\frac{t}{\beta})^\alpha\right\rbrace\quad,\quad\lambda(t)=\frac{\alpha t^{\alpha-1}}{\beta^\alpha}\]
+
+GLM hypothesis:
+\[E[t]=\Gamma(1+\frac{1}{\alpha})\beta=g(w^Tx)\quad\Longrightarrow\quad\beta=\exp(-w^Tx)\]
+Likelihood:
+\begin{equation*}
+\begin{split}
+\mathcal{L}(D)=&\prod_{i=1}^{N}f_T(t_i\mid x_i)^{y_i}P(T\ge t_i\mid x_i)^{1-y_i}\\
+=&\prod_{i=1}^{N}f_T(t_i\mid x_i)^{y_i}S(t_i\mid x_i)^{1-y_i}\\
+=&\prod_{i=1}^{N}[\lambda(t_i\mid x_i)S(t_i\mid x_i)]^{y_i}S(t_i\mid x_i)^{1-y_i}\\
+=&\prod_{i=1}^{N}\lambda(t_i\mid x_i)^{y_i}S(t_i\mid x_i)\\
+=&\prod_{i=1}^{N}\left[\frac{\alpha t_i^{\alpha-1}}{\beta_i^\alpha}\right]^{y_i}\exp\left\lbrace-(\frac{t_i}{\beta_i})^\alpha\right\rbrace\\
+=&\prod_{i=1}^{N}\left[\frac{\alpha t_i^{\alpha-1}}{\exp(-w^Tx_i)^\alpha}\right]^{y_i}\exp\left\lbrace-(\frac{t_i}{\exp(-w^Tx_i)})^\alpha\right\rbrace\\
+\end{split}
+\end{equation*}
+
+Log-likelihood:
+\begin{equation*}
+\begin{split}
+\log\mathcal{L}(D)
+=&\sum_{i=1}^{N}y_i\left[\log(\alpha)+(\alpha-1)\log(t_i)+\alpha w^Tx_i\right]-t_i^\alpha\exp(\alpha w^Tx_i)\\
+\end{split}
+\end{equation*}
+
+With respect to $w$:
+\begin{equation*}
+\begin{split}
+-\log\mathcal{L}(D)=&\sum_{i=1}^{N}t_i^\alpha\exp(\alpha w^Tx_i)-y_i\alpha w^Tx_i\\
+-\frac{\partial}{\partial w}\log\mathcal{L}(D)=&\sum_{i=1}^{N}\alpha x_it_i^\alpha\exp(\alpha w^Tx_i)-y_i\alpha x_i\\
+=&\sum_{i=1}^{N}\alpha x_i\left[t_i^\alpha\exp(\alpha w^Tx_i)-y_i\right]\\
+-\frac{\partial^2}{\partial w^2}\log\mathcal{L}(D)=&\sum_{i=1}^{N}\alpha^2x_ix_i^Tt_i^\alpha\exp(\alpha w^Tx_i)\\
+\end{split}
+\end{equation*}
+
+With respect to $\alpha$:
+\begin{equation*}
+\begin{split}
+-\log\mathcal{L}(D)
+=&\sum_{i=1}^{N}t_i^\alpha\exp(\alpha w^Tx_i)-y_i\left[\log(\alpha)+(\alpha-1)\log(t_i)+\alpha w^Tx_i\right]\\
+-\frac{\partial}{\partial w}\log\mathcal{L}(D)=&\sum_{i=1}^{N}t_i^\alpha\log(t_i)\exp(\alpha w^Tx_i)+w^Tx_i\exp(\alpha w^Tx_i)t_i^\alpha-y_i\left[\frac{1}{\alpha}+\log(t_i)+w^Tx_i\right]\\
+=&\sum_{i=1}^{N}t_i^\alpha\exp(\alpha w^Tx_i)(\log(t_i)+w^Tx_i)-y_i\left[\frac{1}{\alpha}+\log(t_i)+w^Tx_i\right]\\
+-\frac{\partial^2}{\partial w^2}\log\mathcal{L}(D)=&\sum_{i=1}^{N}t_i^\alpha\exp(\alpha w^Tx_i)(\log(t_i)+w^Tx_i)^2+\frac{y_i}{\alpha^2}\\
+\end{split}
+\end{equation*}
+
+Findings:
+\begin{itemize}
+\item Both of the optimization functions with respect to $w$ and with respect to $\alpha$, are convex due to their hessian matrix being positive-definite.
+\item The whole coordinate-descend algorithm seems to be convex, because random initial points does not affect final result.
+\end{itemize}
+\end{document}

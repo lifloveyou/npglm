@@ -1,0 +1,468 @@
+\section{Experiments}\label{sec:results}
+
+We conduct extensive experiments on both synthetic and real-world datasets to evaluate the effectiveness of \npglm.
+
+\subsection{Experiments on synthetic data}
+We use synthetic data to verify the correctness of \npglm and its learning algorithm. Since \npglm is a non-parametric method, we generate synthetic data using various parametric models with previously known random parameters, and evaluate how can \npglm learn the parameters and the underlying distribution of the generated data.
+
+\descr{Experiment Setup.}
+We consider generalized linear models of two widely used distributions for event-time modeling, Rayleigh and Gompertz, as the ground truth models for generating the synthetic data. To generate a total of $N$ data samples with $d$-dimensional feature vectors, consisting $N_o$ non-censored (observed) samples and remaining $N_c=N-N_o$ censored ones, we use the following procedure:
+
+\begin{enumerate}
+\item Draw a weight vector $w\sim\mathcal{N}(0,I_d)$, where $I_d$ is the $d$-dimensional identity matrix.
+\item Draw scalar intercept $b\sim\mathcal{N}(0,1)$.
+\item For $i=1\dots N$ do 
+\begin{enumerate}[i]
+\item Draw feature vector $x_i\sim\mathcal{N}(0,I_d)$.
+\item Set distribution parameter $\alpha_i=\exp(w^Tx_i+b)$
+\item Draw time $t_i$ based on the distribution:
+\begin{itemize}
+    \item[] Rayleigh: $t_i\sim\alpha_i~t\exp\{-0.5\alpha_it^2\}$.
+    \item[] Gompertz: $t_i\sim\alpha_i~e^t\exp\{-\alpha_i(e^t-1)\}$.
+\end{itemize}
+\end{enumerate}
+\item Sort pairs $(x_i,t_i)$ by $t_i$ in ascending order.
+\item For $i=1\dots~N_o$ set $y_i=1$
+\item For $i=(N_o+1)\dots~N$ set $y_i=0$
+\end{enumerate}
+
+For all synthetic experiments, we generate 10-dimensional feature vectors ($d=10$) and set $g(w^Tx)=\exp(w^Tx)$.
+We repeat every experiment 100 times and report the average.
+
+
+\descr{Experiment Results.}
+As \npglm's learning is done in an iterative manner, we first analyzed whether this algorithm converges as the number of iterations increase. We recorded the log-likelihood of \npglm, averaged over the number of training samples $N$ in each iteration. We repeated this experiments for $N\in\{1000,2000,3000\}$ with a fixed censoring ratio of 0.5, which means half of the samples are censored. The result is depicted in Fig.~\ref{fig:syn-cvg-n}. We can see that the algorithm successfully converges with a rate depending on the underlying distribution. For the Rayleigh distribution, it requires about 100 iterations to converge but for Gompertz, this reduces to about 30. Also, we see that using more training data results in achieving more log-likelihood as expected.
+
+\begin{figure}[t]
+\hfill
+    \subfloat[Rayleigh distribution]{
+    \begin{tikzpicture}[trim axis left, trim axis right]
+\begin{axis}
+[
+tiny,
+width=0.56\columnwidth,
+height=3.5cm,
+legend pos=south east,
+legend style={font=\tiny,nodes={scale=0.75, transform shape}},
+xmajorgrids,
+y tick label style={
+    /pgf/number format/.cd,
+        fixed,
+        fixed zerofill,
+        precision=1,
+    /tikz/.cd
+},
+xlabel=$Iteration$,
+%xticklabel style={rotate=90},
+ylabel=$\log\mathcal{L}$,
+ylabel shift = -4 pt,
+ymax=2.5,
+ymin=1.2,
+xmin=0,
+xmax=200,
+%ytick={0.08,0.10,...,0.2},
+xtick={20,60,...,180},
+restrict x to domain=0:200,
+legend entries={${\tiny N=1000}$, $N=2000$, $N=3000$},
+]
+\addplot[color=cyan,  thick, dashed] table{results/cvg_ray_1000.txt};
+\addplot[color=orange,ultra thick, dotted] table{results/cvg_ray_2000.txt};
+\addplot[color=purple,thick] table{results/cvg_ray_3000.txt};
+\end{axis}
+\end{tikzpicture}
+    }\hspace{1cm}    
+    \subfloat[Gompertz distribution]{
+   \begin{tikzpicture}[trim axis left, trim axis right]
+\begin{axis}
+[
+tiny,
+width=0.56\columnwidth,
+height=3.5cm,
+legend pos=south east,
+legend style={font=\tiny,nodes={scale=0.75, transform shape}},
+xmajorgrids,
+y tick label style={
+    /pgf/number format/.cd,
+        fixed,
+        fixed zerofill,
+        precision=1,
+    /tikz/.cd
+},
+xlabel=$Iteration$,
+%xticklabel style={rotate=90},
+ylabel=$\log\mathcal{L}$,
+ylabel shift = -4 pt,
+ymax=2.3,
+%ymin=0.06,
+xmin=0,
+xmax=60,
+%ytick={0.08,0.10,...,0.2},
+xtick={10,20,...,50},
+restrict x to domain=0:100,
+legend entries={$N=1000$, $N=2000$, $N=3000$},
+]
+\addplot[color=cyan  ,thick, dashed] table{results/cvg_gom_1000.txt};
+\addplot[color=orange,ultra thick, dotted] table{results/cvg_gom_2000.txt};
+\addplot[color=purple,thick] table{results/cvg_gom_3000.txt};
+\end{axis}
+\end{tikzpicture}
+    }
+    \caption{Convergence of \npglm's average log-likelihood ($\log\mathcal{L}$) for different number of training samples ($N$). Censoring ratio has been set to 0.5.}
+    \label{fig:syn-cvg-n}
+\end{figure}
+\begin{figure}[t]
+\hfill
+    \subfloat[Rayleigh distribution]{
+    \begin{tikzpicture}[trim axis left, trim axis right]
+\begin{axis}
+[
+tiny,
+width=0.56\columnwidth,
+height=3.5cm,
+legend pos=south east,
+legend style={font=\tiny,nodes={scale=0.75, transform shape}},
+xmajorgrids,
+y tick label style={
+    /pgf/number format/.cd,
+        fixed,
+        fixed zerofill,
+        precision=1,
+    /tikz/.cd
+},
+xlabel=$Iteration$,
+%xticklabel style={rotate=90},
+ylabel=$\log\mathcal{L}$,
+ylabel shift = -8 pt,
+%ymax=0.2,
+ymin=-2,
+xmin=0,
+xmax=100,
+%ytick={0.08,0.10,...,0.2},
+xtick={10,30,...,90},
+restrict x to domain=0:200,
+legend entries={5\% censoring, 25\% censoring, 50\% censoring},
+]
+\addplot[color=cyan  ,thick, dashed] table{results/cvg_ray_5.txt};
+\addplot[color=orange,ultra thick, dotted] table{results/cvg_ray_25.txt};
+\addplot[color=purple,thick] table{results/cvg_ray_50.txt};
+\end{axis}
+\end{tikzpicture}
+    }\hspace{1cm}    
+    \subfloat[Gompertz distribution]{
+   \begin{tikzpicture}[trim axis left, trim axis right]
+\begin{axis}
+[
+tiny,
+width=0.56\columnwidth,
+height=3.5cm,
+legend pos=south east,
+legend style={font=\tiny,nodes={scale=0.75, transform shape}},
+xmajorgrids,
+y tick label style={
+    /pgf/number format/.cd,
+        fixed,
+        fixed zerofill,
+        precision=1,
+    /tikz/.cd
+},
+xlabel=$Iteration$,
+%xticklabel style={rotate=90},
+ylabel=$\log\mathcal{L}$,
+ylabel shift = -4 pt,
+%ymax=0.2,
+%ymin=0.06,
+xmin=0,
+xmax=60,
+%ytick={0.08,0.10,...,0.2},
+xtick={10,20,...,50},
+restrict x to domain=0:60,
+legend entries={5\% censoring, 25\% censoring, 50\% censoring},
+]
+\addplot[color=cyan  ,thick, dashed] table{results/cvg_gom_5.txt};
+\addplot[color=orange,ultra thick, dotted] table{results/cvg_gom_25.txt};
+\addplot[color=purple,thick] table{results/cvg_gom_50.txt};
+\end{axis}
+\end{tikzpicture}
+    }
+    \caption{Convergence of \npglm's average log-likelihood ($\log\mathcal{L}$) for different censoring ratios with 1K samples.}
+    \label{fig:syn-cvg-c}
+\end{figure}
+
+In Fig.~\ref{fig:syn-cvg-c}, we fixed $N=1000$ and performed the same experiment this time using different censoring ratios. According to the figure, we see that by increasing the censoring ratio, the convergence rate increases. This is because \npglm infers the values of $H(t)$ for all $t$ in the time window. Therefore, as the censoring ratio increases, the time window is decreased, so \npglm has to infer a fewer number of parameters, leading to a faster convergence. Note that as opposed to Fig.~\ref{fig:syn-cvg-n}, here a higher log-likelihood doesn't necessarily indicate a better fit, due to the likelihood marginalization we get by the censored samples.
+
+Next, we evaluated how good \npglm can infer the parameters used to generate the synthetic data. To this end, we varied the number of training samples $N$ and measured the mean absolute error (MAE) between the learned weight vector $\hat{w}$ and the ground truth. Fig.~\ref{fig:syn-mae-n} illustrates the result for different censoring ratios. It can be seen that as the number of training samples increases, the MAE gradually decreases. The other point to notice is that more censoring ratio results in higher error due to the information loss we get by censoring.
+
+\begin{figure}[t]
+\hfill  
+    \subfloat[Rayleigh distribution]{
+    \begin{tikzpicture}[trim axis left, trim axis right]
+\begin{axis}
+[
+tiny,
+width=0.56\columnwidth,
+height=3.5cm,
+legend pos=north east,
+legend style={font=\tiny,nodes={scale=0.75, transform shape}},
+grid,
+y tick label style={
+    /pgf/number format/.cd,
+        fixed,
+        fixed zerofill,
+        precision=2,
+    /tikz/.cd
+},
+xlabel=$ N $,
+ylabel=MAE,
+ylabel shift = -4 pt,
+%xticklabel style={rotate=90},
+ymax=0.35,
+xmin=0,
+xmax=1000,
+ytick={0.05,0.10,...,0.35},
+xtick={100,300,...,900},
+restrict x to domain=0:900,
+legend entries={0\% censoring, 25\% censoring, 50\% censoring},
+]
+\addplot[color=purple,mark=square*,mark size=1.1,] table{results/mae_ray.txt};
+\addplot[color=cyan,mark=*,mark size=1.1,] table{results/mae_ray_25.txt};
+\addplot[color=orange,mark=triangle*,mark size=1.5,] table{results/mae_ray_50.txt};
+\end{axis}
+\end{tikzpicture}
+    }\hspace{1cm}
+    \subfloat[Gompertz distribution]{
+    \begin{tikzpicture}[trim axis left, trim axis right]
+\begin{axis}
+[
+tiny,
+width=0.56\columnwidth,
+height=3.5cm,
+legend pos=north east,
+legend style={font=\tiny,nodes={scale=0.75, transform shape}},
+grid,
+y tick label style={
+    /pgf/number format/.cd,
+        fixed,
+        fixed zerofill,
+        precision=2,
+    /tikz/.cd
+},
+xlabel=$ N $,
+%xticklabel style={rotate=90},
+ylabel=MAE,
+ylabel shift = -4 pt,
+ymax=0.22,
+ymin=0.01,
+xmin=0,
+xmax=1000,
+xtick={100,300,...,900},
+restrict x to domain=0:900,
+ytick={0.04,0.07,...,0.21},
+legend entries={0\% censoring, 25\% censoring, 50\% censoring},
+]
+\addplot[color=purple,mark=square*,mark size=1.1,] table{results/mae_gom.txt};
+\addplot[color=cyan,mark=*,mark size=1.1,] table{results/mae_gom_25.txt};
+\addplot[color=orange,mark=triangle*,mark size=1.5,] table{results/mae_gom_50.txt};
+\end{axis}
+\end{tikzpicture}
+    }
+    \caption{\npglm's mean absolute error (MAE) vs the number of training samples ($N$) for different censoring ratios.}
+    \label{fig:syn-mae-n}
+\end{figure}
+\begin{figure}[t]
+\hfill
+    \subfloat[Rayleigh distribution]{
+    \begin{tikzpicture}[trim axis left, trim axis right]
+\begin{axis}
+[
+tiny,
+width=0.56\columnwidth,
+height=3.5cm,
+legend pos=north east,
+legend style={font=\tiny,nodes={scale=0.75, transform shape}},
+grid,
+y tick label style={
+    /pgf/number format/.cd,
+        fixed,
+        fixed zerofill,
+        precision=2,
+    /tikz/.cd
+},
+xlabel=$N_c$,
+%xticklabel style={rotate=90},
+ylabel=MAE,
+ylabel shift = -4 pt,
+ymax=0.2,
+ymin=0.06,
+%xmin=0,
+%xmax=2100,
+ytick={0.08,0.10,...,0.2},
+xtick={0,40,...,200},
+legend entries={$N_o=200$, $N_o=300$, $N_o=400$},
+]
+\addplot[color=cyan,mark=*,mark size=1.1,] table{results/mae_ray_200.txt};
+\addplot[color=orange,mark=triangle*,mark size=1.5,] table{results/mae_ray_300.txt};
+\addplot[color=purple,mark=square*,mark size=1.1,] table{results/mae_ray_400.txt};
+\end{axis}
+\end{tikzpicture}
+    }\hspace{1cm}    
+    \subfloat[Gompertz distribution]{
+   \begin{tikzpicture}[trim axis left, trim axis right]
+\begin{axis}
+[
+tiny,
+width=0.56\columnwidth,
+height=3.5cm,
+legend pos=north east,
+legend style={font=\tiny,nodes={scale=0.75, transform shape}},
+grid,
+y tick label style={
+    /pgf/number format/.cd,
+        fixed,
+        fixed zerofill,
+        precision=2,
+    /tikz/.cd
+},
+xlabel=$N_c$,
+%xticklabel style={rotate=90},
+ylabel=MAE,
+ylabel shift = -4 pt,
+ymax=0.24,
+ymin=0.03,
+%xmin=0,
+%xmax=2100,
+ytick={0.06,0.09,...,0.21},
+xtick={0,40,...,200},
+legend entries={$N_o=200$, $N_o=300$, $N_o=400$},
+]
+\addplot[color=cyan,mark=*,mark size=1.1,] table{results/mae_gom_200.txt};
+\addplot[color=orange,mark=triangle*,mark size=1.5,] table{results/mae_gom_300.txt};
+\addplot[color=purple,mark=square*,mark size=1.1,] table{results/mae_gom_400.txt};
+\end{axis}
+\end{tikzpicture}
+    }
+    \caption{\npglm's mean absolute error (MAE) vs the number of censored samples ($N_c$) for different number of observed samples ($N_o$).}
+    \label{fig:syn-mae-c}
+\end{figure}
+
+Finally, we investigated whether censored samples are informative or not. For this purpose, we fixed the number of observed samples $N_o$ and changed the number of censored samples from 0 to 200. We measure the MAE between $\hat{w}$ and the ground truth for $N_o\in\{200,300,400\}$. The result is shown in Fig.~\ref{fig:syn-mae-c}. It clearly demonstrates that adding more of censored samples causes the MAE to dwindle up to an extent, after which we get no substantial improvement. This threshold is depended on the underlying distribution. In this case, for Rayleigh and Gompertz it is about 80 and 120, respectively.
+
+
+\begin{figure}
+\centering
+\scriptsize
+\begin{tikzpicture}[->,>=stealth',shorten >=1pt,auto,node distance=1.5cm,semithick]
+
+  \node[state] (P)                    {$Post$};
+  \node[state] (U) [above       of=P] {$User$};
+  \node[state] (W) [left=1.2cm  of P] {$Word$};
+  \node[state] (L) [right=1.2cm of P] {$Link$};
+  \node[state] (T) [below       of=P] {$Time$};
+
+  \path (U) edge [loop right] node {follow}  (U)
+            edge [bend  left] node {write}   (P)
+        (P) edge [bend  left] node {mention} (U)
+            edge              node {include} (L)
+            edge              node {contain} (W)
+            edge              node {possess} (T);
+\end{tikzpicture}
+\caption{Schema of the Weibo network.}
+\label{fig:schema}
+\end{figure}
+
+\begin{table}
+\centering
+\caption{Properties of the Weibo Sub-Network}
+\label{table:stat}
+\scriptsize
+\begin{tabu} to \columnwidth {X[l] X[r] c X[l] X[r]}
+\toprule
+\multicolumn{2}{c}{\# Nodes} & & \multicolumn{2}{c}{\# Relations}\\
+\cmidrule(l){1-2} \cmidrule{4-5}
+User      & 3,000     & & follow        & 56,441 \\
+Post      & 28,900    & & mention       & 6,662  \\
+Word      & 1,177,343 & & contain       & 926,033\\
+Link (URL)       & 7,524     & & include       & 7,521  \\
+Time      & 24    & & write/possess & 28,900 \\
+\bottomrule
+\end{tabu}
+\end{table}
+
+\begin{table}
+\centering
+\caption{Similarity Meta-Paths Used for Feature Extraction}
+\label{table:meta}
+\scriptsize
+\begin{tabu} to \columnwidth {X[c] X[l]}
+\toprule
+Meta-Path & Semantic Meaning \\
+\midrule
+$U\rightarrow~U\leftarrow~U$ & Common followee\\
+$U\leftarrow~U\rightarrow~U$ & Common follower\\
+$U\rightarrow~P\rightarrow~U\leftarrow~P\leftarrow~U$ & Common mentioned user\\
+$U\rightarrow~P\rightarrow~W\leftarrow~P\leftarrow~U$ & Common word in posts\\
+$U\rightarrow~P\rightarrow~L\leftarrow~P\leftarrow~U$ & Common referenced URL\\
+$U\rightarrow~P\rightarrow~T\leftarrow~P\leftarrow~U$ & Common posting time\\
+\bottomrule
+\end{tabu}
+\end{table}
+
+\subsection{Experiments on real data}
+We apply \npglm on real-world dataset to evaluate its effectiveness and compare its performance in predicting the time of link creation vis-\`a-vis different parametric models. 
+
+\descr{Dataset.} We use a dynamic real-world dataset from \emph{Sina Weibo}, which is a Chinese microblogging social network. This dataset, provided by \cite{zhang2013}, is a heterogeneous social network whose meta structure is shown in Fig.~\ref{fig:schema}. It is composed of a static and a dynamic part: The static part describes the overal state of the network at the very first timestamp $t_0=$~September 27th 2012; and the dynamic part reflects the new following links along with their times occurred in a time window of 32 days, between September 28th to October 29th, 2012. Since the original dataset is too massive to process (having about 2 million users and 400 million following links), we confine the number of users to 3000 via random edge sampling with graph induction; a network sampling method which is shown to well preserve the topological structure of the original network \cite{ahmed2013}. The demographic statistics of the sampled network is presented in Table~\ref{table:stat}.
+
+\begin{table*}[t]
+\centering
+\caption{Performance of Different Methods On the Weibo Dataset Under Different Measures}
+\label{table:results}
+%\tiny
+\begin{tabu} to \textwidth {X[l] X[l] X[c] X[c] c X[c] X[c] X[c]}
+\toprule
+& 
+& \multicolumn{2}{c}{Median Prediction Error} & & \multicolumn{3}{c}{Confidence Interval Prediction Accuracy (\%)}\\
+\cmidrule(l){3-4} \cmidrule{6-8}
+%\cmidrule(l){2-3} \cmidrule{5-7}
+Dataset & 
+Model & MAE & MRE & & 25\%-75\% & 20\%-80\% & 15\%-85\%\\
+\midrule
+\multirow{5}{*}{Sub-Network \#1} & 
+\npglm & $\bm{10.59\pm0.18}$ & $\bm{4.41\pm0.50}$ & & $\bm{73.83\pm0.48}$ & $\bm{78.98\pm0.45}$ & $\bm{84.27\pm0.51}$\\
+& 
+\textsc{Exp-Glm} & $13.12\pm0.09$ & $6.79\pm0.05$ & & $47.78\pm0.19$ & $49.28\pm0.18$ & $51.03\pm0.24$\\
+& 
+\textsc{Ray-Glm} & $14.44\pm0.07$ & $9.51\pm0.07$ & & $48.84\pm0.10$ & $49.16\pm0.08$ & $49.55\pm0.07$\\
+& 
+\textsc{Pow-Glm} & $12.17\pm0.10$ & $5.77\pm0.11$ & & $51.19\pm0.31$ & $54.83\pm0.30$ & $61.83\pm0.51$\\
+& 
+\textsc{Gom-Glm} & $16.18\pm0.02$ & $11.07\pm0.04$ & & $43.73\pm0.17$ & $45.58\pm0.21$ & $46.66\pm0.15$\\
+\midrule
+\multirow{5}{*}{Sub-Network \#2} & 
+\npglm & $\bm{10.19\pm0.10}$ & $\bm{4.43\pm0.07}$ & & $\bm{73.71\pm0.56}$ & $\bm{79.05\pm0.49}$ & $\bm{84.19\pm0.40}$\\
+& \textsc{Exp-Glm} & $12.82\pm0.04$ & $6.67\pm0.05$ & & $47.88\pm0.22$ & $49.41\pm0.26$ & $51.48\pm0.27$\\
+& \textsc{Ray-Glm} & $14.25\pm0.03$ & $9.38\pm0.04$ & & $48.84\pm0.11$ & $49.23\pm0.11$ & $49.67\pm0.12$\\
+& \textsc{Pow-Glm} & $11.65\pm0.06$ & $5.50\pm0.08$ & & $52.07\pm0.25$ & $55.70\pm0.27$ & $62.51\pm0.35$\\
+& \textsc{Gom-Glm} & $16.15\pm0.02$ & $11.03\pm0.05$ & & $44.05\pm0.23$ & $45.75\pm0.19$ & $46.67\pm0.15$\\
+\midrule
+\multirow{5}{*}{Sub-Network \#3} & 
+\npglm & $\bm{10.34\pm0.12}$ & $\bm{4.41\pm0.02}$ & & $\bm{73.77\pm0.31}$ & $\bm{79.10\pm0.32}$ & $\bm{84.34\pm0.36}$\\
+& \textsc{Exp-Glm} & $13.01\pm0.06$ & $6.73\pm0.02$ & & $47.66\pm0.17$ & $49.21\pm0.14$ & $51.02\pm0.13$\\
+& \textsc{Ray-Glm} & $14.37\pm0.03$ & $9.45\pm0.03$ & & $48.81\pm0.08$ & $49.17\pm0.07$ & $49.58\pm0.08$\\
+& \textsc{Pow-Glm} & $11.78\pm0.06$ & $5.53\pm0.06$ & & $51.64\pm0.17$ & $55.19\pm0.24$ & $62.15\pm0.22$\\
+& \textsc{Gom-Glm} & $16.15\pm0.02$ & $11.04\pm0.02$ & & $43.88\pm0.25$ & $45.55\pm0.16$ & $46.55\pm0.16$\\
+\bottomrule
+\end{tabu}
+\end{table*}
+
+\descr{Experiment Setup.}
+All pairs of users that establish a following relationship in the time window form our non-censored samples, whose number is about 57,000 pairs. We then randomly pick an equal number of user pairs who do not establish a following relationship, neither at the very first timestamp nor in the time window, as censored ones.
+
+As the Weibo dataset is a heterogeneous social network, we use \emph{meta-paths} \cite{sun2011pathsim} to extract features for each pair of users. Regarding the network schema shown in Fig.~\ref{fig:schema}, we consider the symmetric similarity meta-paths presented in Table~\ref{table:meta}, where User, Post, Link, Time, and Word node types are denoted by $ U $, $ P $, $ L $, $ T $, and $ W $, respectively. For each sample pair of users, we apply the \emph{Path-Count} measure \cite{sun2011pathsim} on each meta-path to obtain a unique feature vector. Due to having different scales for different meta-paths, we normalize the obtained features using z-score.
+
+To challenge the performance of the \npglm, we use ordinary generalized linear models with Exponential, Rayleigh, Power-Law, and Gompertz distributions, denoted as \textsc{Exp-Glm}, \textsc{Ray-Glm}, \textsc{Pow-Glm}, and \textsc{Gom-Glm}, respectively. We use 10-fold cross-validation and report the average results for all the experiments in this section.
+
+
+\descr{Experiment Results.}
+We evaluated the prediction performance of different methods using different sets of measures. First, for each test sample $x_{test}$, we considered the median of the distribution $f_T(t\mid~x_{test})$ as the predicted time for that sample and then compared it to the ground truth time $t_{test}$. Mean absolute error (MAE) and mean relative error (MRE) are used to measure the accuracy of the predicted values. Second, we inferred three different confidence intervals for each test sample and checked whether the ground truth time falls within these confidence intervals or not. Thereby, for each confidence interval, we calculated the percentage of the test samples for which their true times belong to that interval.
+
+Table~\ref{table:results} presents the results obtained for each model under different settings. We can see that our \npglm method performs better than other ones under all measures. Comparing to its closest competitor, \textsc{Pow-Glm}, our method has reduced both MAE and MRE by about 13\% and 23\%, respectively. For confidence interval prediction, \npglm has gained a considerable accuracy in all three cases, which is far better than the other's. In 25\%-75\% confidence interval, \npglm has improved the accuracy by about 44\% relative to \textsc{Pow-Glm}. Under 20\%-80\% confidence interval, again an improvement of about 44\% has been achieved. Finally in 15\%-85\% confidence interval, \npglm can improve the accuracy of  \textsc{Pow-Glm} by about 36\%. These results confirms that the \npglm can better cope with the hidden underlying distribution of link creation time given the link features and it can well estimate this distribution and utilize it to do predictions.
+

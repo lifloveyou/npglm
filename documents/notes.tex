@@ -1,0 +1,20 @@
+\documentclass[]{article}
+\usepackage[parfill]{parskip}
+\usepackage{amsmath}
+%opening
+\title{Notes}
+\author{Sina Sajadmanesh}
+
+\begin{document}
+
+\maketitle
+
+\begin{itemize}
+\item MRE is NOT a good measure to compare the results for different training sample sizes. Suppose a case with an actual parameter of $e^{-100}$. If the model estimate were to become $e^{-10}$, the MRE would be then about 10, which is very bad though the it is not as bad as in real.
+\item When dealing with the likelihood of the model on test data for different cases, the test data though big enough must remain the same for all the cases.
+%\item With those distributions for which their intensity function decomposes (like Weibull,) the likelihood of NPGLM is theoretically always less than or equal to the parametric GLM. Because:
+%\[\int_{0}^{t_i}h(t)dt \le \sum_{j=1}^{i-1}h(t_j)(t_{j+1}-t_j)\]
+
+\end{itemize}
+
+\end{document}
