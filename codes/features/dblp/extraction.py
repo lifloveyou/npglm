@@ -13,7 +13,7 @@ mapping = {'author': {}, 'venue': {}, 'term': {}, 'paper': {}}
 stopwords = stop_words.words('english')
 stem = Stemmer.Stemmer('english')
 
-path = 'all'
+path = 'test'
 
 
 def get_index(category, query):
@@ -165,24 +165,29 @@ def extract_features(f_beg, f_end, o_beg, o_end):
     WCT = W @ C.T
     APPPA_out = WCT @ WCT.T
 
-    logging.info('A-P->V<-P-A')
+    logging.info('A-P-V-P-A')
     WP = W @ P
     APVPA = WP @ WP.T
 
-    logging.info('A-P->T<-P-A')
+    logging.info('A-P-T-P-A')
     WI = W @ I
     APTPA = WI @ WI.T
+
+    logging.info('A-P-A-P-A')
+    WW = W @ W.T
+    APAPA = WW @ WW.T
 
     logging.info('Extracting...')
 
     def get_features(u, v):
-        fv = [0, 0, 0, 0, 0, 0]
+        fv = [0, 0, 0, 0, 0, 0, 0]
         fv[0] = APPA[u, v]
         fv[1] = APPA[v, u]
         fv[2] = APPPA_in[u, v]
         fv[3] = APPPA_out[u, v]
         fv[4] = APVPA[u, v]
         fv[5] = APTPA[u, v]
+        fv[6] = APAPA[u, v]
         return fv
 
     X = []
@@ -230,7 +235,7 @@ def generate_samples(filename, observation_begin, observation_end, conf_list):
     year = None
     venue = None
 
-    paper_threshold = 5
+    paper_threshold = 0
 
     for line in dataset:
         # line = line[:-1]
@@ -300,23 +305,23 @@ def main():
         'KDD', 'PKDD', 'ICDM', 'SDM', 'PAKDD', 'SIGMOD', 'VLDB', 'ICDE', 'PODS', 'EDBT', 'SIGIR', 'ECIR',
                  'ACL', 'WWW', 'CIKM', 'NIPS', 'ICML', 'ECML', 'AAAI', 'IJCAI',
 
-        'STOC', 'FOCS', 'COLT', 'LICS', 'SCG', 'SODA', 'SPAA', 'PODC', 'ISSAC', 'CRYPTO', 'EUROCRYPT', 'CONCUR',
-        'ICALP',
-        'STACS', 'COCO', 'WADS', 'MFCS', 'SWAT', 'ESA', 'IPCO', 'LFCS', 'ALT', 'EUROCOLT', 'WDAG', 'ISTCS', 'ISAAC',
-        'FSTTCS', 'LATIN', 'RECOMB', 'CADE', 'ISIT', 'MEGA', 'ASIAN', 'CCCG', 'FCT', 'WG', 'CIAC', 'ICCI', 'CATS',
-        'COCOON', 'GD',
-        'SIROCCO', 'WEA', 'ALENEX', 'FTP', 'CSL', 'DMTCS'
+        # 'STOC', 'FOCS', 'COLT', 'LICS', 'SCG', 'SODA', 'SPAA', 'PODC', 'ISSAC', 'CRYPTO', 'EUROCRYPT', 'CONCUR',
+        # 'ICALP',
+        # 'STACS', 'COCO', 'WADS', 'MFCS', 'SWAT', 'ESA', 'IPCO', 'LFCS', 'ALT', 'EUROCOLT', 'WDAG', 'ISTCS', 'ISAAC',
+        # 'FSTTCS', 'LATIN', 'RECOMB', 'CADE', 'ISIT', 'MEGA', 'ASIAN', 'CCCG', 'FCT', 'WG', 'CIAC', 'ICCI', 'CATS',
+        # 'COCOON', 'GD',
+        # 'SIROCCO', 'WEA', 'ALENEX', 'FTP', 'CSL', 'DMTCS'
     ]
 
     feature_begin = 1980
-    feature_end = 2000
-    observation_begin = 2001
+    feature_end = 2008
+    observation_begin = 2009
     observation_end = 2016
     parse_dataset('data/dblp.txt', feature_begin, feature_end, conf_list)
     generate_samples('data/dblp.txt', observation_begin, observation_end, conf_list)
     extract_features(feature_begin, feature_end, observation_begin, observation_end)
 
-    for t in range(feature_end - 1, feature_begin, -1):
+    for t in range(feature_end - 1, feature_begin, -10):
         print('===========================')
         parse_dataset('data/dblp.txt', feature_begin, t, conf_list)
         extract_features(feature_begin, t, observation_begin, observation_end)

@@ -16,6 +16,11 @@ class PowGlm(Model):
         nloglw = lambda w: PowGlm.nloglw(w, self.b, X, Y, T)
         self.w, self.f = optimize(nloglw, self.w)
 
+    def mean(self, X):
+        X = augment(X)
+        a = np.exp(X @ self.w)
+        return a * self.b / (a - 1)
+
     def quantile(self, X, q):
         X = augment(X)
         ainv = np.exp(-np.dot(X,self.w))

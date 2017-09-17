@@ -8,10 +8,10 @@ from codes.models.NpGlm import NpGlm
 
 def likelihood_vs_training_samples():
     np.random.seed(0)
-    num_test_samples = 1000
+    num_test_samples = 100000
     d = 10
-    num_trains = range(100, 1001, 100)
-    dist = 'gom'
+    num_trains = range(500, 1501, 100)
+    dist = 'ray'
     dist_rnd = get_dist_rnd(dist)
     repeats = 10
     results = np.zeros((repeats, len(num_trains)))
@@ -25,7 +25,7 @@ def likelihood_vs_training_samples():
             X, T = generate_data(w, N, dist_rnd)
 
             Xtest, Ttest = generate_data(w, num_test_samples, dist_rnd)
-            Ytest = np.array([True for _ in range(num_test_samples)])
+            Ytest = np.array([True] * num_test_samples)
             # if T[-1] < Ttest[-1]:
             #     T[-1] = Ttest[-1]
 
@@ -37,11 +37,16 @@ def likelihood_vs_training_samples():
                 # sub_idx = np.append(sub_idx, N-1)
                 Xtrain = X[sub_idx, :]
                 Ttrain = T[sub_idx]
-                Ytrain = np.array([True for _ in range(n)])
+                Ytrain = np.array([True]*n)
 
                 idx = int(n * (1 - censoring))
                 Ytrain[idx:] = False
                 Ttrain[idx:] = Ttrain[idx-1]
+
+                # Ytest_case = Ytest
+                # Ytest_case[(Ttest > Ttrain[idx-1]).ravel()] = False
+                # Ttest_case = Ttest
+                # Ttest_case[Ytest_case == 0] = Ttrain[idx-1]
 
                 npglm = NpGlm()
                 npglm.fit(Xtrain, Ytrain, Ttrain)
@@ -54,6 +59,9 @@ def likelihood_vs_training_samples():
         threads = [gevent.spawn(test_case, tc) for tc in range(repeats)]
         gevent.joinall(threads)
         mean = np.mean(results, axis=0)
+        with open('logl_%s_%d' % (dist, censoring*100), 'w') as out:
+            for i in range(len(num_trains)):
+                out.write('%d\t%f\n' % (num_trains[i], mean[i]))
         plt.plot(num_trains, mean, label='CR = %d%%\n' % (censoring * 100))
     plt.title(likelihood_vs_training_samples.__name__)
     plt.legend(loc='upper right')
@@ -174,8 +182,8 @@ def likelihood_vs_censored_samples_2():
     plt.show()
 
 def main():
-    # likelihood_vs_training_samples()
-    likelihood_vs_censored_samples()
+    likelihood_vs_training_samples()
+    # likelihood_vs_censored_samples()
     # likelihood_vs_censored_samples_2()
 
 

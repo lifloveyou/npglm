@@ -1,4 +1,5 @@
 import numpy as np
+from scipy.stats import gompertz
 from codes.models import Model
 from codes.models import augment, optimize
 
@@ -11,11 +12,17 @@ class GomGlm(Model):
         nloglw = lambda w: GomGlm.nloglw(w, X, Y, T)
         self.w, self.f = optimize(nloglw, self.w)
 
+    def mean(self, X):
+        X = augment(X)
+        a = np.exp(np.dot(X, self.w))
+        return gompertz.mean(a)
+
     def quantile(self, X, q):
         X = augment(X)
         a = np.exp(np.dot(X, self.w))
-        T = np.log(1 - np.log(1 - q) / a)
-        return T
+        # T = np.log(1 - np.log(1 - q) / a)
+        # return T
+        return gompertz.ppf(q, c=a)
 
     @staticmethod
     def nloglw(w, X, Y, T):

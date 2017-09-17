@@ -11,7 +11,6 @@
 \usepackage{times}
 \usepackage{amsmath}
 \usepackage{graphicx}
-\graphicspath{ {images/} }
 \usepackage[caption=false,font=footnotesize]{subfig}
 \usepackage{booktabs}
 \usepackage{multirow}
@@ -22,24 +21,25 @@
 \usepackage{xspace}
 \usepackage{pgfplots}
 \usepackage{enumerate}
-\usepackage{algorithm}
-\usepackage{algorithmic}
+\usepackage[ruled]{algorithm2e}
 \usepackage{balance}
+\usepackage{chronosys, txfonts}
 %\usepackage[keeplastbox]{flushend}
+\graphicspath{ {images/} }
 \pgfplotsset{compat=1.13}
-\usetikzlibrary{arrows,automata,positioning}
+\usetikzlibrary{arrows,automata,positioning,decorations.pathmorphing,shapes}
 %
-\title{NP-GLM:\\A Non-Parametric Method for Temporal\\Link Prediction}
+\title{Continuous-Time Relationship Prediction in Dynamic Heterogeneous Information Networks}
 %
 \author{%
 % author names are typeset in 11pt, which is the default size in the author block
-{Sina Sajadmanesh{\small $~^{\#1}$}, Jiawei Zhang{\small $~^{*2}$}, Hamid R. Rabiee{\small $~^{\#3}$} }%
+{Sina Sajadmanesh{\small $~^{\sharp1}$}, Jiawei Zhang{\small $~^{\star2}$}, Hamid R. Rabiee{\small $~^{\sharp3}$} }%
 % add some space between author names and affils
 \vspace{1.6mm}\\
 \fontsize{10}{10}\selectfont\itshape
 % 20080211 CAUSAL PRODUCTIONS
 % separate superscript on following line from affiliation using narrow space
-$^{\#}$\,Department of Computer Engineering, Sharif University of Technology\\
+$^{\sharp}$\,Department of Computer Engineering, Sharif University of Technology\\
 Tehran, Iran\\
 \fontsize{9}{9}\selectfont\ttfamily\upshape
 %
@@ -57,12 +57,12 @@ $^{3}$\,rabiee@sharif.edu%
 \fontsize{10}{10}\selectfont\rmfamily\itshape
 % 20080211 CAUSAL PRODUCTIONS
 % separated superscript on following line from affiliation using narrow space \,
-$^{*}$\,Department of Computer Science, University of Illinois at Chicago\\
-Chicago, IL, USA\\
+$^{\star}$\,Department of Computer Science, Florida State University\\
+Tallahassee, FL, USA\\
 \fontsize{9}{9}\selectfont\ttfamily\upshape
 % 20080211 CAUSAL PRODUCTIONS
 % removed ~ from pre-superscript since it does not seem to serve any purpose
-$^{2}$\,jzhan9@uic.edu
+$^{2}$\,jzhang@cs.fsu.edu
 }
 %
 \begin{document}
@@ -71,15 +71,24 @@ $^{2}$\,jzhan9@uic.edu
 \newtheorem{definition}{Definition}
 \newcommand{\descr}[1]{\smallskip\noindent\textbf{#1}}
 \newcommand{\npglm}{{\textsc{Np-Glm}}\xspace}
+\newcounter{sarrow}
+\newcommand\xrsquigarrow[1]{%
+	\stepcounter{sarrow}%
+	\begin{tikzpicture}[decoration=snake]
+	\node (\thesarrow) {\strut#1};
+	\draw[->,decorate] (\thesarrow.south west) -- (\thesarrow.south east);
+	\end{tikzpicture}%
+}
 
 \input{abstract}
 \input{intro}
 \input{problem}
+\input{features}
 \input{method}
 \input{results}
 \input{related}
 \input{conclusion}
-\input{acknowledge}
+%\input{acknowledge}
 %\input{appendix}
 
 \bibliographystyle{IEEEtran}

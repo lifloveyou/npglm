@@ -1,37 +1,47 @@
 \section{Experiments}\label{sec:results}
 
-We conduct extensive experiments on both synthetic and real-world datasets to evaluate the effectiveness of \npglm.
+We have conducted extensive experiments on both synthetic and real-world datasets to test the effectiveness of \npglm.
 
 \subsection{Experiments on synthetic data}
-We use synthetic data to verify the correctness of \npglm and its learning algorithm. Since \npglm is a non-parametric method, we generate synthetic data using various parametric models with previously known random parameters, and evaluate how can \npglm learn the parameters and the underlying distribution of the generated data.
+We use synthetic data to verify the correctness of \npglm and its learning algorithm. Since \npglm is a non-parametric method, we generate synthetic data using various parametric models with previously known random parameters, and evaluate how well \npglm can learn the parameters and the underlying distribution of the generated data.
 
 \descr{Experiment Setup.}
-We consider generalized linear models of two widely used distributions for event-time modeling, Rayleigh and Gompertz, as the ground truth models for generating the synthetic data. To generate a total of $N$ data samples with $d$-dimensional feature vectors, consisting $N_o$ non-censored (observed) samples and remaining $N_c=N-N_o$ censored ones, we use the following procedure:
+We consider generalized linear models of two widely used distributions for event-time modeling, Rayleigh and Gompertz, as the ground truth models for generating synthetic data. Algorithm~\ref{alg:syn} is used to generate a total of $N$ data samples with $d$-dimensional feature vectors, consisting $N_o$ non-censored (observed) samples and remaining $N_c=N-N_o$ censored ones. For all synthetic experiments, we generate 10-dimensional feature vectors ($d=10$) and set $g(w^Tx)=\exp(w^Tx)$. We repeat every experiment 100 times and report the average.
 
-\begin{enumerate}
-\item Draw a weight vector $w\sim\mathcal{N}(0,I_d)$, where $I_d$ is the $d$-dimensional identity matrix.
-\item Draw scalar intercept $b\sim\mathcal{N}(0,1)$.
-\item For $i=1\dots N$ do 
-\begin{enumerate}[i]
-\item Draw feature vector $x_i\sim\mathcal{N}(0,I_d)$.
-\item Set distribution parameter $\alpha_i=\exp(w^Tx_i+b)$
-\item Draw time $t_i$ based on the distribution:
-\begin{itemize}
-    \item[] Rayleigh: $t_i\sim\alpha_i~t\exp\{-0.5\alpha_it^2\}$.
-    \item[] Gompertz: $t_i\sim\alpha_i~e^t\exp\{-\alpha_i(e^t-1)\}$.
-\end{itemize}
-\end{enumerate}
-\item Sort pairs $(x_i,t_i)$ by $t_i$ in ascending order.
-\item For $i=1\dots~N_o$ set $y_i=1$
-\item For $i=(N_o+1)\dots~N$ set $y_i=0$
-\end{enumerate}
-
-For all synthetic experiments, we generate 10-dimensional feature vectors ($d=10$) and set $g(w^Tx)=\exp(w^Tx)$.
-We repeat every experiment 100 times and report the average.
+\begin{algorithm}[t]
+	\small
+	\SetAlgoLined
+	\KwIn{The number of observed samples $N_o$, the number of censored samples $N_c$, the dimension of the feature vectors $d$, and the desired distribution $dist$}
+	\KwOut{Synthetically generated data $x_{N\times d}$ and $t_{N\times1}$.}
+	$N\leftarrow N_o+N_c$\;
+	Draw a weight vector $w\sim\mathcal{N}(0,I_d)$, where $I_d$ is the $d$-dimensional identity matrix\;
+	Draw scalar intercept $b\sim\mathcal{N}(0,1)$\;
+	\For{$i\leftarrow1$ to $N$}{
+		Draw feature vector $x_i\sim\mathcal{N}(0,I_d)$\;
+		Set distribution parameter $\alpha_i\leftarrow\exp(w^Tx_i+b)$\;
+		\uIf{$dist == Rayleigh$}{
+			Draw $t_i\sim\alpha_i~t\exp\{-0.5\alpha_it^2\}$\;
+		}
+		\uElseIf{$dist == Gompertz$}{
+			Draw $t_i\sim\alpha_i~e^t\exp\{-\alpha_i(e^t-1)\}$\;
+		}
+	}
+	
+	Sort pairs $(x_i,t_i)$ by $t_i$ in ascending order\;
+	
+	\For{$i\leftarrow1$ to $N_o$}{
+		$y_i\leftarrow1$\;
+	}
+	\For{$i\leftarrow(N_o+1)$ to $N$}{
+		$y_i\leftarrow0$\;
+	}
+	\caption{Synthetic dataset generation algorithm.}
+	\label{alg:syn}
+\end{algorithm}
 
 
 \descr{Experiment Results.}
-As \npglm's learning is done in an iterative manner, we first analyzed whether this algorithm converges as the number of iterations increase. We recorded the log-likelihood of \npglm, averaged over the number of training samples $N$ in each iteration. We repeated this experiments for $N\in\{1000,2000,3000\}$ with a fixed censoring ratio of 0.5, which means half of the samples are censored. The result is depicted in Fig.~\ref{fig:syn-cvg-n}. We can see that the algorithm successfully converges with a rate depending on the underlying distribution. For the Rayleigh distribution, it requires about 100 iterations to converge but for Gompertz, this reduces to about 30. Also, we see that using more training data results in achieving more log-likelihood as expected.
+Since \npglm's learning is done in an iterative manner, we first analyzed whether this algorithm converges as the number of iterations increase. We recorded the log-likelihood of \npglm, averaged over the number of training samples $N$ in each iteration. We repeated this experiment for $N\in\{1000,2000,3000\}$ with a fixed censoring ratio of 0.5, which means half of the samples are censored. The result is depicted in Fig.~\ref{fig:syn-cvg-n}. We can see that the algorithm successfully converges with a rate depending on the underlying distribution. For the case of Rayleigh, it requires about 100 iterations to converge but for Gompertz, this reduces to about 30. Also, we see that using more training data results in achieving more log-likelihood as expected.
 
 \begin{figure}[t]
 \hfill
@@ -41,9 +51,9 @@ As \npglm's learning is done in an iterative manner, we first analyzed whether t
 [
 tiny,
 width=0.56\columnwidth,
-height=3.5cm,
+height=4cm,
 legend pos=south east,
-legend style={font=\tiny,nodes={scale=0.75, transform shape}},
+legend style={font=\scriptsize,nodes={scale=0.75, transform shape}},
 xmajorgrids,
 y tick label style={
     /pgf/number format/.cd,
@@ -77,9 +87,9 @@ legend entries={${\tiny N=1000}$, $N=2000$, $N=3000$},
 [
 tiny,
 width=0.56\columnwidth,
-height=3.5cm,
+height=4cm,
 legend pos=south east,
-legend style={font=\tiny,nodes={scale=0.75, transform shape}},
+legend style={font=\scriptsize,nodes={scale=0.75, transform shape}},
 xmajorgrids,
 y tick label style={
     /pgf/number format/.cd,
@@ -118,9 +128,9 @@ legend entries={$N=1000$, $N=2000$, $N=3000$},
 [
 tiny,
 width=0.56\columnwidth,
-height=3.5cm,
+height=4cm,
 legend pos=south east,
-legend style={font=\tiny,nodes={scale=0.75, transform shape}},
+legend style={font=\scriptsize,nodes={scale=0.75, transform shape}},
 xmajorgrids,
 y tick label style={
     /pgf/number format/.cd,
@@ -154,9 +164,9 @@ legend entries={5\% censoring, 25\% censoring, 50\% censoring},
 [
 tiny,
 width=0.56\columnwidth,
-height=3.5cm,
+height=4cm,
 legend pos=south east,
-legend style={font=\tiny,nodes={scale=0.75, transform shape}},
+legend style={font=\scriptsize,nodes={scale=0.75, transform shape}},
 xmajorgrids,
 y tick label style={
     /pgf/number format/.cd,
@@ -188,9 +198,88 @@ legend entries={5\% censoring, 25\% censoring, 50\% censoring},
     \label{fig:syn-cvg-c}
 \end{figure}
 
-In Fig.~\ref{fig:syn-cvg-c}, we fixed $N=1000$ and performed the same experiment this time using different censoring ratios. According to the figure, we see that by increasing the censoring ratio, the convergence rate increases. This is because \npglm infers the values of $H(t)$ for all $t$ in the time window. Therefore, as the censoring ratio increases, the time window is decreased, so \npglm has to infer a fewer number of parameters, leading to a faster convergence. Note that as opposed to Fig.~\ref{fig:syn-cvg-n}, here a higher log-likelihood doesn't necessarily indicate a better fit, due to the likelihood marginalization we get by the censored samples.
+In Fig.~\ref{fig:syn-cvg-c}, we fixed $N=1000$ and performed the same experiment this time using different censoring ratios. According to the figure, we see that by increasing the censoring ratio, the convergence rate increases. This is because \npglm infers the values of $H(t)$ for all $t$ in the observation window. Therefore, as the censoring ratio increases, the observation window is decreased, so \npglm has to infer a fewer number of parameters, leading to a faster convergence. Note that as opposed to Fig.~\ref{fig:syn-cvg-n}, here a higher log-likelihood doesn't necessarily indicate a better fit, due to the likelihood marginalization we get by the censored samples.
 
-Next, we evaluated how good \npglm can infer the parameters used to generate the synthetic data. To this end, we varied the number of training samples $N$ and measured the mean absolute error (MAE) between the learned weight vector $\hat{w}$ and the ground truth. Fig.~\ref{fig:syn-mae-n} illustrates the result for different censoring ratios. It can be seen that as the number of training samples increases, the MAE gradually decreases. The other point to notice is that more censoring ratio results in higher error due to the information loss we get by censoring.
+\begin{figure}[t]
+	\hfill  
+	\subfloat[Rayleigh distribution]{
+		\begin{tikzpicture}[trim axis left, trim axis right]
+		\begin{axis}
+		[
+		tiny,
+		width=0.56\columnwidth,
+		height=4cm,
+		legend pos=south east,
+		legend style={font=\scriptsize,nodes={scale=0.75, transform shape}},
+		grid,
+		y tick label style={
+			/pgf/number format/.cd,
+			fixed,
+			fixed zerofill,
+			precision=1,
+			/tikz/.cd
+		},
+		xlabel=$ N $,
+		ylabel=$\log\mathcal{L}$,
+		ylabel shift = -4 pt,
+		%xticklabel style={rotate=90},
+%		ymax=0.35,
+		xmin=0,
+		xmax=1000,
+%		ytick={0.05,0.10,...,0.35},
+		xtick={100,300,...,900},
+		restrict x to domain=0:900,
+		legend entries={0\% censoring, 5\% censoring, 10\% censoring},
+		]
+		\addplot[color=purple,mark=square*,mark size=1.1,thick] table{results/logl_ray_0.txt};
+		\addplot[color=cyan,mark=*,mark size=1.1,thick] table{results/logl_ray_5.txt};
+		\addplot[color=orange,mark=triangle*,mark size=1.5,thick] table{results/logl_ray_10.txt};
+		\end{axis}
+		\end{tikzpicture}
+	}\hspace{1cm}
+	\subfloat[Gompertz distribution]{
+		\begin{tikzpicture}[trim axis left, trim axis right]
+		\begin{axis}
+		[
+		tiny,
+		width=0.56\columnwidth,
+		height=4cm,
+		legend pos=south east,
+		legend style={font=\scriptsize,nodes={scale=0.75, transform shape}},
+		grid,
+		y tick label style={
+			/pgf/number format/.cd,
+			fixed,
+			fixed zerofill,
+			precision=1,
+			/tikz/.cd
+		},
+		xlabel=$ N $,
+		%xticklabel style={rotate=90},
+		ylabel=$\log\mathcal{L}$,
+		ylabel shift = -4 pt,
+%		ymax=0.22,
+%		ymin=0.01,
+		xmin=0,
+		xmax=1000,
+		xtick={100,300,...,900},
+		restrict x to domain=0:900,
+%		ytick={0.04,0.07,...,0.21},
+		legend entries={0\% censoring, 5\% censoring, 10\% censoring},
+		]
+		\addplot[color=purple,mark=square*,mark size=1.1,thick] table{results/logl_gom_0.txt};
+		\addplot[color=cyan,mark=*,mark size=1.1,thick] table{results/logl_gom_5.txt};
+		\addplot[color=orange,mark=triangle*,mark size=1.5,thick] table{results/logl_gom_10.txt};
+		\end{axis}
+		\end{tikzpicture}
+	}
+	\caption{\npglm's achieved average log-likelihood on the separate test data vs the number of training samples ($N$) with different censoring ratios.}
+	\label{fig:syn-logl-n}
+\end{figure}
+
+Next, we analyzed the performance of \npglm in terms of the achieved log-likelihood on a separate test dataset by gradually increasing the number of training samples under different censoring ratios. We put away a number of 100K synthetically generated test data samples and trained \npglm with a training dataset of size ranging from 100 to 900. In each step, we calculated the average log-likelihood of the trained model on the test. We repeated this experiment using different censoring ratios. The result is depicted in Fig.~\ref{fig:syn-logl-n}. According to the figure, the log-likelihood achieved on the test dataset gradually rises with the increase in the number of training samples. That is because using more training samples could result in a better estimate of the parameters by which the test data samples are generated.
+
+In another experiment, we evaluated how good \npglm can infer the parameters used to generate the synthetic data. To this end, we varied the number of training samples $N$ and measured the mean absolute error (MAE) between the learned weight vector $\hat{w}$ and the ground truth. Fig.~\ref{fig:syn-mae-n} illustrates the result for different censoring ratios. It can be seen that as the number of training samples increases, the MAE gradually decreases. The other point to notice is that more censoring ratio results in higher error due to the information loss we get by censoring.
 
 \begin{figure}[t]
 \hfill  
@@ -200,9 +289,9 @@ Next, we evaluated how good \npglm can infer the parameters used to generate the
 [
 tiny,
 width=0.56\columnwidth,
-height=3.5cm,
+height=4cm,
 legend pos=north east,
-legend style={font=\tiny,nodes={scale=0.75, transform shape}},
+legend style={font=\scriptsize,nodes={scale=0.75, transform shape}},
 grid,
 y tick label style={
     /pgf/number format/.cd,
@@ -223,9 +312,9 @@ xtick={100,300,...,900},
 restrict x to domain=0:900,
 legend entries={0\% censoring, 25\% censoring, 50\% censoring},
 ]
-\addplot[color=purple,mark=square*,mark size=1.1,] table{results/mae_ray.txt};
-\addplot[color=cyan,mark=*,mark size=1.1,] table{results/mae_ray_25.txt};
-\addplot[color=orange,mark=triangle*,mark size=1.5,] table{results/mae_ray_50.txt};
+\addplot[color=purple,mark=square*,mark size=1.1,thick] table{results/mae_ray.txt};
+\addplot[color=cyan,mark=*,mark size=1.1,thick] table{results/mae_ray_25.txt};
+\addplot[color=orange,mark=triangle*,mark size=1.5,thick] table{results/mae_ray_50.txt};
 \end{axis}
 \end{tikzpicture}
     }\hspace{1cm}
@@ -235,9 +324,9 @@ legend entries={0\% censoring, 25\% censoring, 50\% censoring},
 [
 tiny,
 width=0.56\columnwidth,
-height=3.5cm,
+height=4cm,
 legend pos=north east,
-legend style={font=\tiny,nodes={scale=0.75, transform shape}},
+legend style={font=\scriptsize,nodes={scale=0.75, transform shape}},
 grid,
 y tick label style={
     /pgf/number format/.cd,
@@ -259,9 +348,9 @@ restrict x to domain=0:900,
 ytick={0.04,0.07,...,0.21},
 legend entries={0\% censoring, 25\% censoring, 50\% censoring},
 ]
-\addplot[color=purple,mark=square*,mark size=1.1,] table{results/mae_gom.txt};
-\addplot[color=cyan,mark=*,mark size=1.1,] table{results/mae_gom_25.txt};
-\addplot[color=orange,mark=triangle*,mark size=1.5,] table{results/mae_gom_50.txt};
+\addplot[color=purple,mark=square*,mark size=1.1,thick] table{results/mae_gom.txt};
+\addplot[color=cyan,mark=*,mark size=1.1,thick] table{results/mae_gom_25.txt};
+\addplot[color=orange,mark=triangle*,mark size=1.5,thick] table{results/mae_gom_50.txt};
 \end{axis}
 \end{tikzpicture}
     }
@@ -276,9 +365,9 @@ legend entries={0\% censoring, 25\% censoring, 50\% censoring},
 [
 tiny,
 width=0.56\columnwidth,
-height=3.5cm,
+height=4cm,
 legend pos=north east,
-legend style={font=\tiny,nodes={scale=0.75, transform shape}},
+legend style={font=\scriptsize,nodes={scale=0.75, transform shape}},
 grid,
 y tick label style={
     /pgf/number format/.cd,
@@ -299,9 +388,9 @@ ytick={0.08,0.10,...,0.2},
 xtick={0,40,...,200},
 legend entries={$N_o=200$, $N_o=300$, $N_o=400$},
 ]
-\addplot[color=cyan,mark=*,mark size=1.1,] table{results/mae_ray_200.txt};
-\addplot[color=orange,mark=triangle*,mark size=1.5,] table{results/mae_ray_300.txt};
-\addplot[color=purple,mark=square*,mark size=1.1,] table{results/mae_ray_400.txt};
+\addplot[color=cyan,mark=*,mark size=1.1,thick] table{results/mae_ray_200.txt};
+\addplot[color=orange,mark=triangle*,mark size=1.5,thick] table{results/mae_ray_300.txt};
+\addplot[color=purple,mark=square*,mark size=1.1,thick] table{results/mae_ray_400.txt};
 \end{axis}
 \end{tikzpicture}
     }\hspace{1cm}    
@@ -311,9 +400,9 @@ legend entries={$N_o=200$, $N_o=300$, $N_o=400$},
 [
 tiny,
 width=0.56\columnwidth,
-height=3.5cm,
+height=4cm,
 legend pos=north east,
-legend style={font=\tiny,nodes={scale=0.75, transform shape}},
+legend style={font=\scriptsize,nodes={scale=0.75, transform shape}},
 grid,
 y tick label style={
     /pgf/number format/.cd,
@@ -334,9 +423,9 @@ ytick={0.06,0.09,...,0.21},
 xtick={0,40,...,200},
 legend entries={$N_o=200$, $N_o=300$, $N_o=400$},
 ]
-\addplot[color=cyan,mark=*,mark size=1.1,] table{results/mae_gom_200.txt};
-\addplot[color=orange,mark=triangle*,mark size=1.5,] table{results/mae_gom_300.txt};
-\addplot[color=purple,mark=square*,mark size=1.1,] table{results/mae_gom_400.txt};
+\addplot[color=cyan,mark=*,mark size=1.1,thick] table{results/mae_gom_200.txt};
+\addplot[color=orange,mark=triangle*,mark size=1.5,thick] table{results/mae_gom_300.txt};
+\addplot[color=purple,mark=square*,mark size=1.1,thick] table{results/mae_gom_400.txt};
 \end{axis}
 \end{tikzpicture}
     }
@@ -347,122 +436,223 @@ legend entries={$N_o=200$, $N_o=300$, $N_o=400$},
 Finally, we investigated whether censored samples are informative or not. For this purpose, we fixed the number of observed samples $N_o$ and changed the number of censored samples from 0 to 200. We measure the MAE between $\hat{w}$ and the ground truth for $N_o\in\{200,300,400\}$. The result is shown in Fig.~\ref{fig:syn-mae-c}. It clearly demonstrates that adding more of censored samples causes the MAE to dwindle up to an extent, after which we get no substantial improvement. This threshold is depended on the underlying distribution. In this case, for Rayleigh and Gompertz it is about 80 and 120, respectively.
 
 
-\begin{figure}
-\centering
-\scriptsize
-\begin{tikzpicture}[->,>=stealth',shorten >=1pt,auto,node distance=1.5cm,semithick]
-
-  \node[state] (P)                    {$Post$};
-  \node[state] (U) [above       of=P] {$User$};
-  \node[state] (W) [left=1.2cm  of P] {$Word$};
-  \node[state] (L) [right=1.2cm of P] {$Link$};
-  \node[state] (T) [below       of=P] {$Time$};
-
-  \path (U) edge [loop right] node {follow}  (U)
-            edge [bend  left] node {write}   (P)
-        (P) edge [bend  left] node {mention} (U)
-            edge              node {include} (L)
-            edge              node {contain} (W)
-            edge              node {possess} (T);
-\end{tikzpicture}
-\caption{Schema of the Weibo network.}
-\label{fig:schema}
-\end{figure}
-
-\begin{table}
-\centering
-\caption{Properties of the Weibo Sub-Network}
-\label{table:stat}
-\scriptsize
-\begin{tabu} to \columnwidth {X[l] X[r] c X[l] X[r]}
-\toprule
-\multicolumn{2}{c}{\# Nodes} & & \multicolumn{2}{c}{\# Relations}\\
-\cmidrule(l){1-2} \cmidrule{4-5}
-User      & 3,000     & & follow        & 56,441 \\
-Post      & 28,900    & & mention       & 6,662  \\
-Word      & 1,177,343 & & contain       & 926,033\\
-Link (URL)       & 7,524     & & include       & 7,521  \\
-Time      & 24    & & write/possess & 28,900 \\
-\bottomrule
-\end{tabu}
-\end{table}
-
-\begin{table}
-\centering
-\caption{Similarity Meta-Paths Used for Feature Extraction}
-\label{table:meta}
-\scriptsize
-\begin{tabu} to \columnwidth {X[c] X[l]}
-\toprule
-Meta-Path & Semantic Meaning \\
-\midrule
-$U\rightarrow~U\leftarrow~U$ & Common followee\\
-$U\leftarrow~U\rightarrow~U$ & Common follower\\
-$U\rightarrow~P\rightarrow~U\leftarrow~P\leftarrow~U$ & Common mentioned user\\
-$U\rightarrow~P\rightarrow~W\leftarrow~P\leftarrow~U$ & Common word in posts\\
-$U\rightarrow~P\rightarrow~L\leftarrow~P\leftarrow~U$ & Common referenced URL\\
-$U\rightarrow~P\rightarrow~T\leftarrow~P\leftarrow~U$ & Common posting time\\
-\bottomrule
-\end{tabu}
+\begin{table}[t]
+	\centering
+	\caption{Properties of DBLP Bibliographic Network}
+	\label{table:dataset}
+	\scriptsize
+	\begin{tabu} to \columnwidth {X[l] X[l] X[c] X[c]}
+		\toprule
+		& & \multicolumn{2}{c}{Network} \\
+		\cmidrule(l){3-4}
+		& Property & {dblp-db} & {dblp-th}\\
+		\midrule % In-table horizontal line
+		\multirow{4}{*}{\# Nodes}
+		& Author & 51,486 & 29,542 \\ % Content row 1
+		& Paper & 79,069 & 64,333 \\ % Content row 2
+		& Venue & 19 & 40 \\ % Content row 3
+		& Term & 22,567 & 18,578 \\ % Content row 3
+		\midrule
+		\multirow{4}{*}{\# Relations}
+		& Write & 123,343 & 77,783 \\ % Content row 1
+		& Publish & 39,965 & 30,732 \\ % Content row 2
+		& Cite & 217,037 & 141,215 \\ % Content row 3
+		& Mention & 278,257 & 206,735 \\ % Content row 3
+		\bottomrule % Bottom horizontal line
+	\end{tabu}
 \end{table}
 
 \subsection{Experiments on real data}
-We apply \npglm on real-world dataset to evaluate its effectiveness and compare its performance in predicting the time of link creation vis-\`a-vis different parametric models. 
+We apply \npglm with the proposed feature set on real-world dataset to evaluate its effectiveness and compare its performance in predicting the time of link creation vis-\`a-vis different parametric models. 
 
-\descr{Dataset.} We use a dynamic real-world dataset from \emph{Sina Weibo}, which is a Chinese microblogging social network. This dataset, provided by \cite{zhang2013}, is a heterogeneous social network whose meta structure is shown in Fig.~\ref{fig:schema}. It is composed of a static and a dynamic part: The static part describes the overal state of the network at the very first timestamp $t_0=$~September 27th 2012; and the dynamic part reflects the new following links along with their times occurred in a time window of 32 days, between September 28th to October 29th, 2012. Since the original dataset is too massive to process (having about 2 million users and 400 million following links), we confine the number of users to 3000 via random edge sampling with graph induction; a network sampling method which is shown to well preserve the topological structure of the original network \cite{ahmed2013}. The demographic statistics of the sampled network is presented in Table~\ref{table:stat}.
+\descr{Dataset.} We have used DBLP bibliographic citation network, provided by \cite{tang2008aminer}, as the real-world dataset which has both attributes of dynamicity and heterogeneity. Based on the publication venue of the papers, we extracted two networks, named \emph{dblp-db} and \emph{dblp-th}, from the original DBLP dataset. The dblp-db is composed of the papers which are published in the conferences or journals related to Database, Data Mining, Machine Learning, and Artificial Intelligence. On the other hand, those papers that are published in the venues relative to the theoretical computer science, constitute the dblp-th network. The demographic statistics of both networks is presented in Table~\ref{table:dataset}.
 
 \begin{table*}[t]
 \centering
-\caption{Performance of Different Methods On the Weibo Dataset Under Different Measures}
+\caption{Performance Comparison of Different Methods Under Different Lengths for Observation Window}
 \label{table:results}
-%\tiny
-\begin{tabu} to \textwidth {X[l] X[l] X[c] X[c] c X[c] X[c] X[c]}
+\scriptsize
+\begin{tabu} to \textwidth {X[l] c l X[c] X[c] c X[c] X[c] c X[c] X[c]}
 \toprule
-& 
-& \multicolumn{2}{c}{Median Prediction Error} & & \multicolumn{3}{c}{Confidence Interval Prediction Accuracy (\%)}\\
-\cmidrule(l){3-4} \cmidrule{6-8}
+& & 
+& \multicolumn{2}{c}{$\Omega=3$} & & \multicolumn{2}{c}{$\Omega=6$} & & \multicolumn{2}{c}{$\Omega=9$}\\
+\cmidrule(l){4-5} \cmidrule{7-8} \cmidrule{10-11}
 %\cmidrule(l){2-3} \cmidrule{5-7}
-Dataset & 
-Model & MAE & MRE & & 25\%-75\% & 20\%-80\% & 15\%-85\%\\
+Dataset & Feature &
+Model & MAE & MRE & & MAE & MRE & & MAE & MRE\\
 \midrule
-\multirow{5}{*}{Sub-Network \#1} & 
-\npglm & $\bm{10.59\pm0.18}$ & $\bm{4.41\pm0.50}$ & & $\bm{73.83\pm0.48}$ & $\bm{78.98\pm0.45}$ & $\bm{84.27\pm0.51}$\\
-& 
-\textsc{Exp-Glm} & $13.12\pm0.09$ & $6.79\pm0.05$ & & $47.78\pm0.19$ & $49.28\pm0.18$ & $51.03\pm0.24$\\
-& 
-\textsc{Ray-Glm} & $14.44\pm0.07$ & $9.51\pm0.07$ & & $48.84\pm0.10$ & $49.16\pm0.08$ & $49.55\pm0.07$\\
-& 
-\textsc{Pow-Glm} & $12.17\pm0.10$ & $5.77\pm0.11$ & & $51.19\pm0.31$ & $54.83\pm0.30$ & $61.83\pm0.51$\\
-& 
-\textsc{Gom-Glm} & $16.18\pm0.02$ & $11.07\pm0.04$ & & $43.73\pm0.17$ & $45.58\pm0.21$ & $46.66\pm0.15$\\
+\multirow{8}{*}{dblp-db}
+& \multirow{4}{*}{\rotatebox{90}{Dynamic}}
+& \npglm & $\bm{0.21\pm0.02}$ & $\bm{0.16\pm0.07}$ & & $\bm{0.76\pm0.05}$ & $\bm{0.34\pm0.03}$ & & $\bm{1.10\pm0.09}$ & $\bm{0.43\pm0.02}$ \\
+& & \textsc{Exp-Glm} & $0.27\pm0.09$ & $0.20\pm0.02$ & & $0.83\pm0.09$ & $0.43\pm0.06$ & & $1.39\pm0.04$ & $0.66\pm0.01$ \\
+& & \textsc{Ray-Glm} & $0.40\pm0.04$ & $0.32\pm0.05$ & & $1.90\pm0.06$ & $1.00\pm0.09$ & & $2.56\pm0.01$ & $1.60\pm0.02$ \\
+& & \textsc{Exp-Glm} & $0.38\pm0.09$ & $0.32\pm0.09$ & & $1.89\pm0.07$ & $1.23\pm0.02$ & & $3.30\pm0.07$ & $2.03\pm0.01$ \\
+
+\cmidrule{2-11}
+& \multirow{4}{*}{\rotatebox{90}{Static}}
+& \npglm & $0.27\pm0.01$ & $0.20\pm0.01$ & & $0.85\pm0.03$ & $0.45\pm0.02$ & & $1.32\pm0.07$ & $0.56\pm0.02$ \\
+& & \textsc{Exp-Glm} & $0.33\pm0.01$ & $0.24\pm0.01$ & & $0.93\pm0.03$ & $0.51\pm0.02$ & & $1.54\pm0.06$ & $0.74\pm0.05$ \\
+& & \textsc{Ray-Glm} & $0.48\pm0.02$ & $0.37\pm0.02$ & & $2.16\pm0.06$ & $1.30\pm0.04$ & & $3.37\pm0.12$ & $1.84\pm0.11$ \\
+& & \textsc{Exp-Glm} & $0.48\pm0.01$ & $0.36\pm0.01$ & & $2.28\pm0.02$ & $1.37\pm0.03$ & & $4.24\pm0.10$ & $2.28\pm0.06$ \\
+
 \midrule
-\multirow{5}{*}{Sub-Network \#2} & 
-\npglm & $\bm{10.19\pm0.10}$ & $\bm{4.43\pm0.07}$ & & $\bm{73.71\pm0.56}$ & $\bm{79.05\pm0.49}$ & $\bm{84.19\pm0.40}$\\
-& \textsc{Exp-Glm} & $12.82\pm0.04$ & $6.67\pm0.05$ & & $47.88\pm0.22$ & $49.41\pm0.26$ & $51.48\pm0.27$\\
-& \textsc{Ray-Glm} & $14.25\pm0.03$ & $9.38\pm0.04$ & & $48.84\pm0.11$ & $49.23\pm0.11$ & $49.67\pm0.12$\\
-& \textsc{Pow-Glm} & $11.65\pm0.06$ & $5.50\pm0.08$ & & $52.07\pm0.25$ & $55.70\pm0.27$ & $62.51\pm0.35$\\
-& \textsc{Gom-Glm} & $16.15\pm0.02$ & $11.03\pm0.05$ & & $44.05\pm0.23$ & $45.75\pm0.19$ & $46.67\pm0.15$\\
-\midrule
-\multirow{5}{*}{Sub-Network \#3} & 
-\npglm & $\bm{10.34\pm0.12}$ & $\bm{4.41\pm0.02}$ & & $\bm{73.77\pm0.31}$ & $\bm{79.10\pm0.32}$ & $\bm{84.34\pm0.36}$\\
-& \textsc{Exp-Glm} & $13.01\pm0.06$ & $6.73\pm0.02$ & & $47.66\pm0.17$ & $49.21\pm0.14$ & $51.02\pm0.13$\\
-& \textsc{Ray-Glm} & $14.37\pm0.03$ & $9.45\pm0.03$ & & $48.81\pm0.08$ & $49.17\pm0.07$ & $49.58\pm0.08$\\
-& \textsc{Pow-Glm} & $11.78\pm0.06$ & $5.53\pm0.06$ & & $51.64\pm0.17$ & $55.19\pm0.24$ & $62.15\pm0.22$\\
-& \textsc{Gom-Glm} & $16.15\pm0.02$ & $11.04\pm0.02$ & & $43.88\pm0.25$ & $45.55\pm0.16$ & $46.55\pm0.16$\\
+\multirow{8}{*}{dblp-th}
+& \multirow{4}{*}{\rotatebox{90}{Dynamic}}
+& \npglm & $\bm{0.22\pm0.03}$ & $\bm{0.17\pm0.08}$ & & $\bm{0.75\pm0.09}$ & $\bm{0.36\pm0.02}$ & & $\bm{1.06\pm0.09}$ & $\bm{0.47\pm0.08}$ \\
+& & \textsc{Exp-Glm} & $0.30\pm0.03$ & $0.19\pm0.07$ & & $0.75\pm0.09$ & $0.43\pm0.06$ & & $1.37\pm0.03$ & $0.60\pm0.02$ \\
+& & \textsc{Ray-Glm} & $0.41\pm0.01$ & $0.34\pm0.01$ & & $1.83\pm0.06$ & $1.11\pm0.02$ & & $3.01\pm0.07$ & $1.56\pm0.04$ \\
+& & \textsc{Exp-Glm} & $0.38\pm0.06$ & $0.30\pm0.09$ & & $1.88\pm0.05$ & $1.23\pm0.02$ & & $3.97\pm0.06$ & $2.14\pm0.02$ \\
+
+\cmidrule{2-11}
+& \multirow{4}{*}{\rotatebox{90}{Static}}
+& \npglm & $0.28\pm0.01$ & $0.21\pm0.01$ & & $0.89\pm0.04$ & $0.47\pm0.02$ & & $1.37\pm0.07$ & $0.57\pm0.03$ \\
+& & \textsc{Exp-Glm} & $0.34\pm0.02$ & $0.25\pm0.02$ & & $0.98\pm0.03$ & $0.54\pm0.02$ & & $1.59\pm0.07$ & $0.77\pm0.04$ \\
+& & \textsc{Ray-Glm} & $0.50\pm0.03$ & $0.39\pm0.02$ & & $2.26\pm0.07$ & $1.36\pm0.05$ & & $3.54\pm0.13$ & $1.92\pm0.08$ \\
+& & \textsc{Exp-Glm} & $0.50\pm0.01$ & $0.38\pm0.02$ & & $2.38\pm0.06$ & $1.43\pm0.07$ & & $4.41\pm0.14$ & $2.40\pm0.07$ \\
+
 \bottomrule
 \end{tabu}
 \end{table*}
 
 \descr{Experiment Setup.}
-All pairs of users that establish a following relationship in the time window form our non-censored samples, whose number is about 57,000 pairs. We then randomly pick an equal number of user pairs who do not establish a following relationship, neither at the very first timestamp nor in the time window, as censored ones.
+We confined the dataset to the papers which has been published between the years 1995 and 2016, and selected the authors who had published more than 5 papers in the Feature Extraction Window of each experiment. Following the method described for feature extraction in Section~\ref{sec:features}, we extracted 19 dynamic meta-path-based features. As \npglm needs the data samples sorted by their corresponding time variables, the samples were sorted according to their recorded time. Finally, since the features extracted for different meta-paths have different scales, we normalized the data using Z-Score.
 
-As the Weibo dataset is a heterogeneous social network, we use \emph{meta-paths} \cite{sun2011pathsim} to extract features for each pair of users. Regarding the network schema shown in Fig.~\ref{fig:schema}, we consider the symmetric similarity meta-paths presented in Table~\ref{table:meta}, where User, Post, Link, Time, and Word node types are denoted by $ U $, $ P $, $ L $, $ T $, and $ W $, respectively. For each sample pair of users, we apply the \emph{Path-Count} measure \cite{sun2011pathsim} on each meta-path to obtain a unique feature vector. Due to having different scales for different meta-paths, we normalize the obtained features using z-score.
-
-To challenge the performance of the \npglm, we use ordinary generalized linear models with Exponential, Rayleigh, Power-Law, and Gompertz distributions, denoted as \textsc{Exp-Glm}, \textsc{Ray-Glm}, \textsc{Pow-Glm}, and \textsc{Gom-Glm}, respectively. We use 10-fold cross-validation and report the average results for all the experiments in this section.
-
+To challenge the performance of the \npglm, we use conventional generalized linear models with Exponential, Rayleigh, and Gompertz distributions, denoted as \textsc{Exp-Glm}, \textsc{Ray-Glm}, and \textsc{Gom-Glm}, respectively. We use 10-fold cross-validation and report the average results for all the experiments in this section.
 
 \descr{Experiment Results.}
-We evaluated the prediction performance of different methods using different sets of measures. First, for each test sample $x_{test}$, we considered the median of the distribution $f_T(t\mid~x_{test})$ as the predicted time for that sample and then compared it to the ground truth time $t_{test}$. Mean absolute error (MAE) and mean relative error (MRE) are used to measure the accuracy of the predicted values. Second, we inferred three different confidence intervals for each test sample and checked whether the ground truth time falls within these confidence intervals or not. Thereby, for each confidence interval, we calculated the percentage of the test samples for which their true times belong to that interval.
+In the first set of experiments, we evaluated the prediction power of different models using different feature sets, and tested how well they generalize in different configurations for the feature extraction window and the observation window. Under each configuration, we considered the median of the distribution $f_T(t\mid x_{test})$ as the predicted time for that sample and then compared it to the ground truth time $t_{test}$. \emph{Mean Absolute Error} (MAE) and \emph{Mean Relative Error} (MRE) are used to measure the accuracy of the predicted values. To examine the effect of considering the temporal dynamics of the network in the performance of the models, we evaluated each one with two different feature sets: \emph{dynamic} and \emph{static}. Dynamic feature set is our proposed features which captures the temporal dynamics of the network. On the contrary, static feature set only uses the very last snapshot of the network just before the beginning of the observation window, so fails to cope with the dynamicity od the network. 
 
-Table~\ref{table:results} presents the results obtained for each model under different settings. We can see that our \npglm method performs better than other ones under all measures. Comparing to its closest competitor, \textsc{Pow-Glm}, our method has reduced both MAE and MRE by about 13\% and 23\%, respectively. For confidence interval prediction, \npglm has gained a considerable accuracy in all three cases, which is far better than the other's. In 25\%-75\% confidence interval, \npglm has improved the accuracy by about 44\% relative to \textsc{Pow-Glm}. Under 20\%-80\% confidence interval, again an improvement of about 44\% has been achieved. Finally in 15\%-85\% confidence interval, \npglm can improve the accuracy of  \textsc{Pow-Glm} by about 36\%. These results confirms that the \npglm can better cope with the hidden underlying distribution of link creation time given the link features and it can well estimate this distribution and utilize it to do predictions.
+In Table~\ref{table:results}, we fixed the length of the feature extraction window to 10 ($\Phi=10$) and varied the length of the observation window ($\Omega$) within the set $\{3,6,9\}$. The MAE and MRE of all models under both dblp-db and dblp-th networks, and using both dynamic and static feature sets has been recored. We see that in both networks, \npglm using the dynamic features is superior to the other models, having lower prediction error. Also the results show that using the dynamic features has a positive impact on the performance of all models and decreases their prediction error.
 
+Table~\ref{table:results2} compares the MAE and MRE of different models when we fixed the length of the observation window to 6 ($\Omega=6$) and selected the length of the feature extraction window from the set $\{5,10,15\}$. Again the results of all models has been obtained under both dblp-db and dblp-th networks, and using both static and dynamic feature sets. It is clear that \npglm has performed better that other baselines, even when it uses static features. The results also show that leveraging more historical data to extract features could lead to more accurate predictions and lower errors.
+
+
+\begin{table*}[t]
+	\scriptsize
+	\centering
+	\caption{Performance Comparison of Different Methods Under Different Lengths for Feature Extraction Window}
+	\label{table:results2}
+	%\tiny
+	\begin{tabu} to \textwidth {X[l] c l X[c] X[c] c X[c] X[c] c X[c] X[c]}
+		\toprule
+		& & 
+		& \multicolumn{2}{c}{$\Phi=5$} & & \multicolumn{2}{c}{$\Phi=10$} & & \multicolumn{2}{c}{$\Phi=15$}\\
+		\cmidrule(l){4-5} \cmidrule{7-8} \cmidrule{10-11}
+		%\cmidrule(l){2-3} \cmidrule{5-7}
+		Dataset & Feature &
+		Model & MAE & MRE & & MAE & MRE & & MAE & MRE\\
+		\midrule
+		\multirow{8}{*}{dblp-db}
+		& \multirow{4}{*}{\rotatebox{90}{Dynamic}}
+		& 			  \npglm & $\bm{0.78\pm0.01}$ & $\bm{0.37\pm0.01}$ & & $\bm{0.76\pm0.05}$ & $\bm{0.34\pm0.03}$ & & $\bm{0.62\pm0.07}$ & $\bm{0.35\pm0.03}$ \\
+		& & \textsc{Exp-Glm} & $0.83\pm0.02$ & $0.41\pm0.05$ & & $0.83\pm0.09$ & $0.43\pm0.06$ & & $0.76\pm0.07$ & $0.40\pm0.03$ \\
+		& & \textsc{Ray-Glm} & $1.65\pm0.08$ & $1.00\pm0.03$ & & $1.90\pm0.06$ & $1.00\pm0.09$ & & $1.84\pm0.04$ & $1.00\pm0.02$ \\
+		& & \textsc{Exp-Glm} & $2.05\pm0.06$ & $1.12\pm0.06$ & & $1.89\pm0.07$ & $1.23\pm0.02$ & & $1.95\pm0.01$ & $1.17\pm0.08$ \\
+		
+		\cmidrule{2-11}                                                                            
+		& \multirow{4}{*}{\rotatebox{90}{Static}}                                                  
+		& 			  \npglm & $0.86\pm0.02$ & $0.44\pm0.01$ & & $0.85\pm0.03$ & $0.44\pm0.02$ & & $0.81\pm0.05$ & $0.41\pm0.02$ \\
+		& & \textsc{Exp-Glm} & $0.94\pm0.03$ & $0.50\pm0.02$ & & $0.93\pm0.03$ & $0.51\pm0.02$ & & $0.93\pm0.04$ & $0.51\pm0.03$ \\
+		& & \textsc{Ray-Glm} & $2.17\pm0.05$ & $1.29\pm0.04$ & & $2.16\pm0.04$ & $1.29\pm0.03$ & & $2.12\pm0.07$ & $1.28\pm0.05$ \\
+		& & \textsc{Exp-Glm} & $2.28\pm0.03$ & $1.35\pm0.02$ & & $2.28\pm0.06$ & $1.36\pm0.04$ & & $2.22\pm0.08$ & $1.34\pm0.07$ \\
+		
+		\midrule                                                                                   
+		\multirow{8}{*}{dblp-th}                                                                   
+		& \multirow{4}{*}{\rotatebox{90}{Dynamic}}                                                 
+		& 			  \npglm & $\bm{0.77\pm0.01}$ & $\bm{0.40\pm0.01}$ & & $\bm{0.75\pm0.09}$ & $\bm{0.36\pm0.02}$ & & $\bm{0.73\pm0.04}$ & $\bm{0.36\pm0.09}$ \\
+		& & \textsc{Exp-Glm} & $0.85\pm0.06$ & $0.40\pm0.09$ & & $0.75\pm0.09$ & $0.43\pm0.06$ & & $0.75\pm0.08$ & $0.47\pm0.02$ \\
+		& & \textsc{Ray-Glm} & $1.77\pm0.05$ & $1.15\pm0.09$ & & $1.83\pm0.06$ & $1.11\pm0.02$ & & $1.95\pm0.08$ & $1.10\pm0.06$ \\
+		& & \textsc{Exp-Glm} & $2.10\pm0.06$ & $1.07\pm0.03$ & & $1.88\pm0.05$ & $1.23\pm0.02$ & & $1.76\pm0.04$ & $1.08\pm0.05$ \\
+		
+		\cmidrule{2-11}                                                                            
+		& \multirow{4}{*}{\rotatebox{90}{Static}}                                                  
+		& 			  \npglm & $0.90\pm0.03$ & $0.46\pm0.01$ & & $0.89\pm0.04$ & $0.45\pm0.01$ & & $0.85\pm0.04$ & $0.43\pm0.03$ \\
+		& & \textsc{Exp-Glm} & $0.98\pm0.03$ & $0.52\pm0.03$ & & $0.97\pm0.03$ & $0.53\pm0.03$ & & $0.98\pm0.04$ & $0.54\pm0.03$ \\
+		& & \textsc{Ray-Glm} & $2.33\pm0.07$ & $1.32\pm0.04$ & & $2.29\pm0.04$ & $1.36\pm0.04$ & & $2.21\pm0.12$ & $1.34\pm0.08$ \\
+		& & \textsc{Exp-Glm} & $2.42\pm0.04$ & $1.41\pm0.06$ & & $2.40\pm0.08$ & $1.41\pm0.06$ & & $2.31\pm0.08$ & $1.40\pm0.07$ \\
+		
+		\bottomrule
+	\end{tabu}
+\end{table*}
+
+
+
+\begin{figure}[t]
+	\hfill  
+	\subfloat[dblp-db]{
+		\begin{tikzpicture}[trim axis left, trim axis right]
+		\begin{axis}
+		[
+		tiny,
+		width=0.56\columnwidth,
+		height=5cm,
+		legend pos=south east,
+		legend style={font=\tiny,nodes={scale=0.75, transform shape}},
+		grid,
+		y tick label style={
+			/pgf/number format/.cd,
+			fixed,
+			fixed zerofill,
+			precision=2,
+			/tikz/.cd
+		},
+		xlabel=Absolute Error,
+		ylabel=Prediction Accuracy,
+		ylabel shift = -4 pt,
+		%xticklabel style={rotate=90},
+		ymax=1.1,
+		xmin=0,
+		xmax=3.5,
+		ytick={0.1,0.2,...,0.9,1.0},
+		xtick={0.5,1.0,...,3},
+%		restrict x to domain=0:900,
+		legend entries={NP-GLM, Exp-GLM, Ray-GLM, Gom-GLM},
+		]
+		\addplot[color=purple,mark=square*,mark size=1.1,thick] table{results/db_np.txt};
+		\addplot[color=cyan,mark=triangle*,mark size=1.1,thick] table{results/db_exp.txt};
+		\addplot[color=orange,mark=*,mark size=1.5,thick] table{results/db_ray.txt};
+		\addplot[color=green,mark=diamond*,mark size=1.5,thick] table{results/db_gom.txt};
+		\end{axis}
+		\end{tikzpicture}
+	}\hspace{1cm}
+	\subfloat[dblp-th]{
+		\begin{tikzpicture}[trim axis left, trim axis right]
+		\begin{axis}
+		[
+		tiny,
+		width=0.56\columnwidth,
+		height=5cm,
+		legend pos=south east,
+		legend style={font=\tiny,nodes={scale=0.75, transform shape}},
+		grid,
+		y tick label style={
+			/pgf/number format/.cd,
+			fixed,
+			fixed zerofill,
+			precision=2,
+			/tikz/.cd
+		},
+		xlabel=Absolute Error,
+		ylabel=Prediction Accuracy,
+		ylabel shift = -4 pt,
+		%xticklabel style={rotate=90},
+		ymax=1.1,
+		xmin=0,
+		xmax=3.5,
+		ytick={0.1,0.2,...,0.9,1.0},
+		xtick={0.5,1.0,...,3},
+		%		restrict x to domain=0:900,
+		legend entries={NP-GLM, Exp-GLM, Ray-GLM, Gom-GLM},
+		]
+		\addplot[color=purple,mark=square*,mark size=1.1,thick] table{results/th_np.txt};
+		\addplot[color=cyan,mark=triangle*,mark size=1.1,thick] table{results/th_exp.txt};
+		\addplot[color=orange,mark=*,mark size=1.5,thick] table{results/th_ray.txt};
+		\addplot[color=green,mark=diamond*,mark size=1.5,thick] table{results/th_gom.txt};
+		\end{axis}
+		\end{tikzpicture}
+	}
+	\caption{Prediction accuracy of different methods vs the maximum tolerated absolute error with $\Phi=10$ and $\Omega=6$.}
+	\label{fig:real}
+\end{figure}
+
+In the final experiment, we investigated that given an absolute error, for what fraction of test samples a model can have a lower prediction error than the given one. In other words, to evaluate the prediction accuracy of a model, we record the fraction of test samples for which the difference between their true time and the predicted one are lower than a given error, called \emph{tolerated error}. To this end, we again used the median as the predicted value by each model trained using dynamic features. The feature extraction and observation windows were set to 10 and 6, respectively, and the result for different tolerated error in range $\{0.5, 1.0, \dots, 3.0\}$ were plotted in Fig~\ref{fig:real}. The result demonstrate that \npglm can achieve a higher accuracy in all cases relative to other baselines, especially when dealing with lower tolerated errors.

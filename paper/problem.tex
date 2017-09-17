@@ -1,76 +1,52 @@
 \section{Problem Formulation}\label{sec:problem}
-In this section, we formulate the temporal link prediction problem and introduce some important concepts and definitions used throughout the paper.
+In this section, we introduce some important concepts and definitions used throughout the paper and formally define the problem of continuous-time relationship prediction.
 
-\begin{table*}
-%\renewcommand{\arraystretch}{2}
-\centering
-\caption{Characteristics of Some Probability Distributions Used for Event-Time Modeling}
-\label{table:dists}
-\begin{tabu} to \textwidth {X X[c] X[c] X[c] X[c]}
-\toprule
-Distribution & Density function & Reliability function & Intensity function & Cumulative intensity\\
-& $f_T(t)$ & $S(t)$ & $\lambda(t)$ & $\Lambda(t)$\\[1pt]
-\midrule % In-table horizontal line
-Exponential & $\alpha\exp(-\alpha t)$ & $\exp(-\alpha t)$ & $\alpha$ & $\alpha t$\\[4pt]
-%\midrule
-Rayleigh & $\frac{t}{\sigma^2}\exp(-\frac{t^2}{2\sigma^2})$ & $\exp(-\frac{t^2}{2\sigma^2})$ & $\frac{t}{\sigma^2}$ & $\frac{t^2}{2\sigma^2}$\\[4pt]
-%\midrule % In-table horizontal line
-Gompertz & $\alpha e^t\exp\left\lbrace -\alpha(e^t-1) \right\rbrace$ & $\exp\left\lbrace -\alpha(e^t-1) \right\rbrace$ & $\alpha e^t$ & $\alpha e^t$\\[2pt]
-%\midrule % In-table horizontal line
-Power-Law & $\frac{\alpha\beta^\alpha}{t^{\alpha+1}}$ & $\left(\frac{\beta}{t}\right)^\alpha$ & $\frac{\alpha}{t}$ & $\alpha\ln(t)$\\
-\bottomrule % Bottom horizontal line
-\end{tabu}
-\end{table*}
+\subsection{Heterogeneous Information Networks}
 
-\subsection{Temporal Link Prediction}
-The aim of this paper is to predict the time of link creation in social networks.
-Formally, given the feature vector $x_l$ for a missing link $l$ extracted in time $t_0$, we want to predict $t_l$, which shows how long after $t_0$ the link $l$ will appear in the network. A probabilistic approach to this problem is to model the conditional distribution $f_T(t_l\mid x_l)$.
+An information network is \emph{heterogeneous} if it contains multiple kinds of nodes and links. Formally, it is defined as a directed graph $G=(V,E)$ where $V = \cup_i V_i$ is the set of nodes composed of the union of all the node sets $V_i$ of type $i$. Similarly, $E=\cup_j E_j$ is the set of links constituted by the union of all the link sets $E_j$ of type $j$. Now we bring the definition of the \emph{network schema} \cite{sun2011pathsim} which is used to describe a heterogeneous information network in a meta-level:
 
-\subsection{Data Description}
-Suppose that we have a snapshot of the network at the time $t_0$, and we have seen the evolution of the network (the emergence of new links) in the time interval $[t_0,t_e]$ called \textit{time window}. Based on the existence state of the links prior to $t_0$, between $t_0$ and $t_e$, and after $t_e$, we can classify links in the following categories:
-
-\begin{enumerate}
-\item Links that are already present at time $t_0$.
-\item Links that do not exist at $t_0$, but will appear during the time window.
-\item Links that remain missing all the time when we reach $t_e$.
-\end{enumerate}
-
-Those links that fall within the 2nd and the 3rd categories form our data samples and will be used in the learning procedure. For these links, we extract their feature vectors at time $t_0$. For a link $l$ of the 2nd category, we have seen that it is created at a time like $t_c\in[t_0,t_e]$. So we set $t_l=t_c-t_0$ as the time it takes for the link $l$ to appear after $t_0$, and $y_l=1$ which indicates that we have \emph{observed} its exact creation time. If $l$ is of the 3rd category, we haven't seen its exact creation time, but we know it is definitely after $t_e$. For such samples, which we call the \emph{censored} ones, we set $t_l=t_e-t_f$ and $y_l=0$ to indicate that the recorded time is in fact less than the real one. These type of links are also of interest because their features will give us some information about their time falling after $t_e$. As a result, each link $l$ is associated with a triple $(x_l,y_l,t_l)$ representing its feature vector, its observation status, and the time it takes to appear, respectively. In Section \ref{sec:method}, we propose \npglm which is a supervised method to relate $x_l$ to $t_l$ by estimating $f_T(t_l\mid x_l)$ in a non-parametric fashion.
-
-\subsection{Basic Concepts}
-Here we define some essential concepts that are necessary to study before we proceed to the proposed method. Generally, the formation of a link between two nodes in the network can simply be considered as an event with its occurring time as a random variable $T$ coming from a density function $f_T(t)$. Regarding this, we can have the following definitions:
-
-\begin{definition}[Survival Function]
-Given the density $f_T(t)$, the survival function denoted by $S(t)$, is the probability that an event occurs after a certain value of $t$, which means:
-\begin{equation}
-    S(t) = P(T > t) = \int_t^\infty f_T(t)dt
-\end{equation}
+\begin{definition}{(Network Schema)}
+	The schema of a heterogeneous network $G$ is a graph $S_G=(\nu, \varepsilon)$ where $\nu$ is the set of different node types and $\varepsilon$ is the set of different link types in $G$.
 \end{definition}
 
-\begin{definition}[Intensity Function]
-The intensity function (or failure rate function), denoted by $\lambda(t)$, is the instantaneous rate of event occurring at any time $t$ given the fact that the event has not occurred yet:
-\begin{equation}
-    \lambda(t)=\lim_{\Delta t\rightarrow 0}\frac{P(t\le T\le t+\Delta t\mid T\ge t)}{\Delta t}
-\end{equation}
-\end{definition}
+\begin{figure}
+	\centering
+	\scriptsize
+	\begin{tikzpicture}[->,>=stealth',shorten >=1pt,auto,node distance=1.5cm,semithick]
+	
+	\node[state] (P)                    {$Paper$};
+	\node[state] (V) [above=0.7cm of P] {$Venue$};
+	\node[state] (T) [left=1.2cm  of P] {$Term$};
+	\node[state] (A) [right=1.2cm of P] {$Author$};
+	
+	\path 
+	(A) edge              node {write}     (P)
+	(V) edge              node {publish}   (P)            
+	(P) edge              node {mention}   (T)
+	(P) edge [loop below] node {cite}      (P);
+	
+	\end{tikzpicture}
+	\caption{Schema for DBLP bibliographic citation network.}
+	\label{fig:schema}
+\end{figure}
 
-\begin{definition}[Cumulative Intensity Function]
-The cumulative intensity function, denoted by $\Lambda(t)$, is the area under the intensity function up to a point $t$:
-\begin{equation}
-    \Lambda(t)=\int_0^t\lambda(t)dt
-\end{equation}
-\end{definition}
+In this paper, we focus on the bibliographic network, in which \emph{Author}, \emph{Paper}, \emph{Venue}, and \emph{Term} are different node types denoted as $A$, $P$, $V$, and $T$, respectively. There are also \emph{write}, \emph{publish}, \emph{mention}, and \emph{cite} as different link types. The schema of this network has been depicted in Fig.~\ref{fig:schema}. 
 
-The relations between density, survival, and intensity functions come directly from their definitions as follows:
+As we mentioned in the Introduction section about heterogeneous networks, the concept of a link can be generalized to a relationship. In this case, a relationship could be either a single link, or a composite relation constituted by concatenation of multiple links that together has a particular semantic meaning. For example, the co-authorship relation in a bibliographic network with the schema shown in Fig.~\ref{fig:schema}, can be defined as the combination of two Author-write-Paper links, making Author-write-Paper-write-Author relation. When dealing with the link or relationship prediction in heterogeneous networks, we must exactly specify what kind of link or relationship we are going to predict. This is called the \emph{Target Relation} \cite{sun2012will}. In this paper, we aim to predict if and when an author in a bibliographic network will cite a paper from another author. Thus the target relation in this case would be Author-write-Paper-cite-Paper-write-Author.
 
-\begin{equation}\label{eq:intensity}
-    \lambda(t)=\frac{f_T(t)}{S(t)}
-\end{equation}
-\begin{equation}\label{eq:reliability}
-    S(t)=\exp(-\Lambda(t)dt)
-\end{equation}
-\begin{equation}\label{eq:density}
-    f_T(t)=\lambda(t)\exp(-\Lambda(t))
-\end{equation}
+\subsection{Dynamic Information Networks}
+An information network is \emph{dynamic} when its nodes and linkage structure could change over time. That is, in a dynamic information network, all nodes and links are associated with a birth and death time, which denotes when they exist in the network. More formally, a dynamic network between time $t_1$ and $t_2$ is defined as $G^{t_1,t_2}=(V^{t_1,t_2}, E^{t_1,t_2})$ where $V^{t_1,t_2}$ and $E^{t_1,t_2}$ are the set of nodes and the set of links between time $t_1$ and $t_2$, respectively, which are defined as follows:
+\[V^{t_1,t_2}=\{v: t_1< t_b(v)\le t_2<t_d(v)\}\]
+\[E^{t_1,t_2}=\{e: t_1< t_b(e)\le t_2<t_d(e)\}\]
+where $t_b(x)$ and $t_d(x)$ denotes the birth and death time of a network entity $x$ (which can be node or link,) respectively.
 
-Table \ref{table:dists} shows the density, reliability, intensity, and cumulative intensity functions of some widely-used distributions for event time modeling.
+For the sake of simplicity, in this paper we assume that each network entity have only a single birth and death time, so we do not consider the cases of reoccurring or multiple links. Furthermore, without loss of generality, we assume that the node objects are persistent over time, and only linkage structure would change. This is due to the fact that an isolated node which does not participate in any link will not have any effect on the network and can be simply ignored. By this definition, a node will bear when it make a link with another node for the first time, and it dies when it loses all of its associated links. This can be formally stated as below:
+\[\forall v\in V^{0,\infty}: t_b(v)=\min_e t_b(e), \ v\in e\in E^{0,\infty}\]
+\[\forall v\in V^{0,\infty}: t_d(v)=\max_e t_d(e), \ v\in e\in E^{0,\infty}\]
+
+In this paper, we consider the case that an information network is both dynamic and heterogeneous. This means that all network entities are associated with a type, and they also have their birth and death times, regardless of their type. The bibliographic network is an example of both dynamic and heterogeneous network. Whenever a new paper is published, a new Paper node will be added to network, alongside with some new Author, Term, and Venue nodes. Some linkages might also form between the existing nodes and the new ones. For example, if one of the authors of the new paper had written another paper before, a link would have been formed between her and her new paper.
+
+\subsection{Continuous-Time Relationship Prediction}
+Suppose that we are given a dynamic and heterogeneous information network as $G^{t_1,t_2}$, observed between the times $t_1$ and $t_2$, and is associated with a network schema $S_G$. Now, given the target relation $R$, the aim of continuous-time relationship prediction is to continuously forecast the building time $t\ge t_2$ of $R$ for a given pair of nodes in $G^{t_1,t_2}$.
+
+To solve this problem, we first introduce a feature extraction framework to cope with both the dynamicity and heterogeneity of the network, and then propose a non-parametric model which utilizes the extracted features to perform predictions about the building time of the target relationship.

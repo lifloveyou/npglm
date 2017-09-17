@@ -13,12 +13,6 @@ class RayGlm(ExpGlm):
         super().fit(X, Y, T)
         self.w[0] += 0.5 * np.log(0.5)
 
-    # def quantile(self, X, q):
-    #     X = augment(X)
-    #     Beta = np.exp(-np.dot(X, self.w))
-    #     T = Beta * (-np.log(1 - q))**.5
-    #     return T
-
 
 def main():
     model = RayGlm()

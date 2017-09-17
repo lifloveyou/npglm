@@ -3,6 +3,9 @@ import pickle
 import numpy as np
 from scipy import sparse, random
 
+
+logging.basicConfig(level=logging.INFO, format='%(asctime)s: %(message)s', datefmt='%H:%M:%S')
+
 user_counter = 0
 user_index = {}
 

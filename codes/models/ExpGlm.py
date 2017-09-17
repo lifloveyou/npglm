@@ -1,4 +1,5 @@
 import numpy as np
+import scipy.special
 from codes.models import Model
 from codes.models import augment
 from codes.models import optimize
@@ -19,7 +20,7 @@ class ExpGlm(Model):
     def mean(self, X):
         X = augment(X)
         Beta = np.exp(-np.dot(X, self.w))
-        return Beta
+        return Beta * scipy.special.gamma(1 + 1/self.a)
 
     def quantile(self, X, q):
         X = augment(X)
