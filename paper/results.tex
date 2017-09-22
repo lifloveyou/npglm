@@ -6,19 +6,19 @@ We have conducted extensive experiments on both synthetic and real-world dataset
 We use synthetic data to verify the correctness of \npglm and its learning algorithm. Since \npglm is a non-parametric method, we generate synthetic data using various parametric models with previously known random parameters, and evaluate how well \npglm can learn the parameters and the underlying distribution of the generated data.
 
 \descr{Experiment Setup.}
-We consider generalized linear models of two widely used distributions for event-time modeling, Rayleigh and Gompertz, as the ground truth models for generating synthetic data. Algorithm~\ref{alg:syn} is used to generate a total of $N$ data samples with $d$-dimensional feature vectors, consisting $N_o$ non-censored (observed) samples and remaining $N_c=N-N_o$ censored ones. For all synthetic experiments, we generate 10-dimensional feature vectors ($d=10$) and set $g(w^Tx)=\exp(w^Tx)$. We repeat every experiment 100 times and report the average.
+We consider generalized linear models of two widely used distributions for event-time modeling, Rayleigh and Gompertz, as the ground truth models for generating synthetic data. Algorithm~\ref{alg:syn} is used to generate a total of $N$ data samples with $d$-dimensional feature vectors, consisting $N_o$ non-censored (observed) samples and remaining $N_c=N-N_o$ censored ones. For all synthetic experiments, we generate 10-dimensional feature vectors ($d=10$) and set $g(\mb{w}^T\mb{x})=\exp(\mb{w}^T\mb{x})$. We repeat every experiment 100 times and report the average.
 
 \begin{algorithm}[t]
 	\small
 	\SetAlgoLined
 	\KwIn{The number of observed samples $N_o$, the number of censored samples $N_c$, the dimension of the feature vectors $d$, and the desired distribution $dist$}
-	\KwOut{Synthetically generated data $x_{N\times d}$ and $t_{N\times1}$.}
+	\KwOut{Synthetically generated data $\mb{X}_{N\times d}$, $\mb{y}_{N\times1}$, and $\mb{t}_{N\times1}$.}
 	$N\leftarrow N_o+N_c$\;
-	Draw a weight vector $w\sim\mathcal{N}(0,I_d)$, where $I_d$ is the $d$-dimensional identity matrix\;
+	Draw a weight vector $\mb{w}\sim\mathcal{N}(0,I_d)$, where $I_d$ is the $d$-dimensional identity matrix\;
 	Draw scalar intercept $b\sim\mathcal{N}(0,1)$\;
 	\For{$i\leftarrow1$ to $N$}{
-		Draw feature vector $x_i\sim\mathcal{N}(0,I_d)$\;
-		Set distribution parameter $\alpha_i\leftarrow\exp(w^Tx_i+b)$\;
+		Draw feature vector $\mb{x}_i\sim\mathcal{N}(0,I_d)$\;
+		Set distribution parameter $\alpha_i\leftarrow\exp(\mb{w}^T\mb{x}_i+b)$\;
 		\uIf{$dist == Rayleigh$}{
 			Draw $t_i\sim\alpha_i~t\exp\{-0.5\alpha_it^2\}$\;
 		}
@@ -27,7 +27,7 @@ We consider generalized linear models of two widely used distributions for event
 		}
 	}
 	
-	Sort pairs $(x_i,t_i)$ by $t_i$ in ascending order\;
+	Sort pairs $(\mb{x}_i,t_i)$ by $t_i$ in ascending order\;
 	
 	\For{$i\leftarrow1$ to $N_o$}{
 		$y_i\leftarrow1$\;
@@ -433,7 +433,7 @@ legend entries={$N_o=200$, $N_o=300$, $N_o=400$},
     \label{fig:syn-mae-c}
 \end{figure}
 
-Finally, we investigated whether censored samples are informative or not. For this purpose, we fixed the number of observed samples $N_o$ and changed the number of censored samples from 0 to 200. We measure the MAE between $\hat{w}$ and the ground truth for $N_o\in\{200,300,400\}$. The result is shown in Fig.~\ref{fig:syn-mae-c}. It clearly demonstrates that adding more of censored samples causes the MAE to dwindle up to an extent, after which we get no substantial improvement. This threshold is depended on the underlying distribution. In this case, for Rayleigh and Gompertz it is about 80 and 120, respectively.
+Finally, we investigated whether censored samples are informative or not. For this purpose, we fixed the number of observed samples $N_o$ and changed the number of censored samples from 0 to 200. We measure the MAE between the learned $\mb{w}$ and the ground truth for $N_o\in\{200,300,400\}$. The result is shown in Fig.~\ref{fig:syn-mae-c}. It clearly demonstrates that adding more censored samples causes the MAE to dwindle up to an extent, after which we get no substantial improvement. This threshold is depended on the underlying distribution. In this case, for Rayleigh and Gompertz it is about 80 and 120, respectively.
 
 
 \begin{table}[t]
@@ -448,16 +448,16 @@ Finally, we investigated whether censored samples are informative or not. For th
 		& Property & {dblp-db} & {dblp-th}\\
 		\midrule % In-table horizontal line
 		\multirow{4}{*}{\# Nodes}
-		& Author & 51,486 & 29,542 \\ % Content row 1
-		& Paper & 79,069 & 64,333 \\ % Content row 2
-		& Venue & 19 & 40 \\ % Content row 3
-		& Term & 22,567 & 18,578 \\ % Content row 3
+		& $Author$ & 51,486 & 29,542 \\ % Content row 1
+		& $Paper$ & 79,069 & 64,333 \\ % Content row 2
+		& $Venue$ & 19 & 40 \\ % Content row 3
+		& $Term$ & 22,567 & 18,578 \\ % Content row 3
 		\midrule
 		\multirow{4}{*}{\# Relations}
-		& Write & 123,343 & 77,783 \\ % Content row 1
-		& Publish & 39,965 & 30,732 \\ % Content row 2
-		& Cite & 217,037 & 141,215 \\ % Content row 3
-		& Mention & 278,257 & 206,735 \\ % Content row 3
+		& $write$ & 123,343 & 77,783 \\ % Content row 1
+		& $publish$ & 39,965 & 30,732 \\ % Content row 2
+		& $cite$ & 217,037 & 141,215 \\ % Content row 3
+		& $mention$ & 278,257 & 206,735 \\ % Content row 3
 		\bottomrule % Bottom horizontal line
 	\end{tabu}
 \end{table}
@@ -465,11 +465,11 @@ Finally, we investigated whether censored samples are informative or not. For th
 \subsection{Experiments on real data}
 We apply \npglm with the proposed feature set on real-world dataset to evaluate its effectiveness and compare its performance in predicting the time of link creation vis-\`a-vis different parametric models. 
 
-\descr{Dataset.} We have used DBLP bibliographic citation network, provided by \cite{tang2008aminer}, as the real-world dataset which has both attributes of dynamicity and heterogeneity. Based on the publication venue of the papers, we extracted two networks, named \emph{dblp-db} and \emph{dblp-th}, from the original DBLP dataset. The dblp-db is composed of the papers which are published in the conferences or journals related to Database, Data Mining, Machine Learning, and Artificial Intelligence. On the other hand, those papers that are published in the venues relative to the theoretical computer science, constitute the dblp-th network. The demographic statistics of both networks is presented in Table~\ref{table:dataset}.
+\descr{Dataset.} We have used DBLP bibliographic citation network, provided by \cite{tang2008aminer}, as the real-world dataset which has both attributes of dynamicity and heterogeneity. Based on the publication venue of the papers, we extracted two networks, named \emph{dblp-db} and \emph{dblp-th}, from the original DBLP dataset. The dblp-db is composed of papers which are published in conferences or journals related to Database, Data Mining, Machine Learning, and Artificial Intelligence. Moreover, those papers that are published in venues relative to the theoretical computer science, constitute the dblp-th network. The demographic statistics of both networks is presented in Table~\ref{table:dataset}.
 
 \begin{table*}[t]
 \centering
-\caption{Performance Comparison of Different Methods Under Different Lengths for Observation Window}
+\caption{Performance Comparison of Different Methods Under Different Lengths for Observation Window when $\Phi=10$}
 \label{table:results}
 \scriptsize
 \begin{tabu} to \textwidth {X[l] c l X[c] X[c] c X[c] X[c] c X[c] X[c]}
@@ -515,66 +515,16 @@ Model & MAE & MRE & & MAE & MRE & & MAE & MRE\\
 \end{table*}
 
 \descr{Experiment Setup.}
-We confined the dataset to the papers which has been published between the years 1995 and 2016, and selected the authors who had published more than 5 papers in the Feature Extraction Window of each experiment. Following the method described for feature extraction in Section~\ref{sec:features}, we extracted 19 dynamic meta-path-based features. As \npglm needs the data samples sorted by their corresponding time variables, the samples were sorted according to their recorded time. Finally, since the features extracted for different meta-paths have different scales, we normalized the data using Z-Score.
+We confined the dataset to the papers which has been published between the years 1995 and 2016, and selected the authors who had published more than 5 papers in the Feature Extraction Window of each experiment. Following the method described for feature extraction in Section~\ref{sec:features}, we extracted 19 dynamic meta-path-based features. The rate parameter of features were determines using a separate validation set to get best results. As \npglm needs the data samples sorted by their corresponding time variables, the samples were sorted according to their recorded time. Finally, since the features extracted for different meta-paths have different scales, we normalized the data using Z-Score. In all experiments, the author citation relation ($A\rightarrow P\rightarrow P\leftarrow A$) were chosen as the target relation.
 
 To challenge the performance of the \npglm, we use conventional generalized linear models with Exponential, Rayleigh, and Gompertz distributions, denoted as \textsc{Exp-Glm}, \textsc{Ray-Glm}, and \textsc{Gom-Glm}, respectively. We use 10-fold cross-validation and report the average results for all the experiments in this section.
 
 \descr{Experiment Results.}
-In the first set of experiments, we evaluated the prediction power of different models using different feature sets, and tested how well they generalize in different configurations for the feature extraction window and the observation window. Under each configuration, we considered the median of the distribution $f_T(t\mid x_{test})$ as the predicted time for that sample and then compared it to the ground truth time $t_{test}$. \emph{Mean Absolute Error} (MAE) and \emph{Mean Relative Error} (MRE) are used to measure the accuracy of the predicted values. To examine the effect of considering the temporal dynamics of the network in the performance of the models, we evaluated each one with two different feature sets: \emph{dynamic} and \emph{static}. Dynamic feature set is our proposed features which captures the temporal dynamics of the network. On the contrary, static feature set only uses the very last snapshot of the network just before the beginning of the observation window, so fails to cope with the dynamicity od the network. 
+In the first set of experiments, we evaluated the prediction power of different models using different feature sets, and tested how well they generalize in different configurations for the feature extraction window and the observation window. Under each configuration, we considered the median of the distribution $f_T(t\mid \mb{x}_{test})$ as the predicted time for that sample and then compared it to the ground truth time $t_{test}$. \emph{Mean Absolute Error} (MAE) and \emph{Mean Relative Error} (MRE) are used to measure the accuracy of the predicted values. To examine the effect of considering the temporal dynamics of the network in the performance of the models, we evaluated each one with two different feature sets: \emph{dynamic} and \emph{static}. Dynamic feature set is our proposed features which captures the temporal dynamics of the network. On the contrary, static feature set only uses the very last snapshot of the network just before the beginning of the observation window, so fails to cope with the dynamicity od the network. 
 
 In Table~\ref{table:results}, we fixed the length of the feature extraction window to 10 ($\Phi=10$) and varied the length of the observation window ($\Omega$) within the set $\{3,6,9\}$. The MAE and MRE of all models under both dblp-db and dblp-th networks, and using both dynamic and static feature sets has been recored. We see that in both networks, \npglm using the dynamic features is superior to the other models, having lower prediction error. Also the results show that using the dynamic features has a positive impact on the performance of all models and decreases their prediction error.
 
 Table~\ref{table:results2} compares the MAE and MRE of different models when we fixed the length of the observation window to 6 ($\Omega=6$) and selected the length of the feature extraction window from the set $\{5,10,15\}$. Again the results of all models has been obtained under both dblp-db and dblp-th networks, and using both static and dynamic feature sets. It is clear that \npglm has performed better that other baselines, even when it uses static features. The results also show that leveraging more historical data to extract features could lead to more accurate predictions and lower errors.
-
-
-\begin{table*}[t]
-	\scriptsize
-	\centering
-	\caption{Performance Comparison of Different Methods Under Different Lengths for Feature Extraction Window}
-	\label{table:results2}
-	%\tiny
-	\begin{tabu} to \textwidth {X[l] c l X[c] X[c] c X[c] X[c] c X[c] X[c]}
-		\toprule
-		& & 
-		& \multicolumn{2}{c}{$\Phi=5$} & & \multicolumn{2}{c}{$\Phi=10$} & & \multicolumn{2}{c}{$\Phi=15$}\\
-		\cmidrule(l){4-5} \cmidrule{7-8} \cmidrule{10-11}
-		%\cmidrule(l){2-3} \cmidrule{5-7}
-		Dataset & Feature &
-		Model & MAE & MRE & & MAE & MRE & & MAE & MRE\\
-		\midrule
-		\multirow{8}{*}{dblp-db}
-		& \multirow{4}{*}{\rotatebox{90}{Dynamic}}
-		& 			  \npglm & $\bm{0.78\pm0.01}$ & $\bm{0.37\pm0.01}$ & & $\bm{0.76\pm0.05}$ & $\bm{0.34\pm0.03}$ & & $\bm{0.62\pm0.07}$ & $\bm{0.35\pm0.03}$ \\
-		& & \textsc{Exp-Glm} & $0.83\pm0.02$ & $0.41\pm0.05$ & & $0.83\pm0.09$ & $0.43\pm0.06$ & & $0.76\pm0.07$ & $0.40\pm0.03$ \\
-		& & \textsc{Ray-Glm} & $1.65\pm0.08$ & $1.00\pm0.03$ & & $1.90\pm0.06$ & $1.00\pm0.09$ & & $1.84\pm0.04$ & $1.00\pm0.02$ \\
-		& & \textsc{Exp-Glm} & $2.05\pm0.06$ & $1.12\pm0.06$ & & $1.89\pm0.07$ & $1.23\pm0.02$ & & $1.95\pm0.01$ & $1.17\pm0.08$ \\
-		
-		\cmidrule{2-11}                                                                            
-		& \multirow{4}{*}{\rotatebox{90}{Static}}                                                  
-		& 			  \npglm & $0.86\pm0.02$ & $0.44\pm0.01$ & & $0.85\pm0.03$ & $0.44\pm0.02$ & & $0.81\pm0.05$ & $0.41\pm0.02$ \\
-		& & \textsc{Exp-Glm} & $0.94\pm0.03$ & $0.50\pm0.02$ & & $0.93\pm0.03$ & $0.51\pm0.02$ & & $0.93\pm0.04$ & $0.51\pm0.03$ \\
-		& & \textsc{Ray-Glm} & $2.17\pm0.05$ & $1.29\pm0.04$ & & $2.16\pm0.04$ & $1.29\pm0.03$ & & $2.12\pm0.07$ & $1.28\pm0.05$ \\
-		& & \textsc{Exp-Glm} & $2.28\pm0.03$ & $1.35\pm0.02$ & & $2.28\pm0.06$ & $1.36\pm0.04$ & & $2.22\pm0.08$ & $1.34\pm0.07$ \\
-		
-		\midrule                                                                                   
-		\multirow{8}{*}{dblp-th}                                                                   
-		& \multirow{4}{*}{\rotatebox{90}{Dynamic}}                                                 
-		& 			  \npglm & $\bm{0.77\pm0.01}$ & $\bm{0.40\pm0.01}$ & & $\bm{0.75\pm0.09}$ & $\bm{0.36\pm0.02}$ & & $\bm{0.73\pm0.04}$ & $\bm{0.36\pm0.09}$ \\
-		& & \textsc{Exp-Glm} & $0.85\pm0.06$ & $0.40\pm0.09$ & & $0.75\pm0.09$ & $0.43\pm0.06$ & & $0.75\pm0.08$ & $0.47\pm0.02$ \\
-		& & \textsc{Ray-Glm} & $1.77\pm0.05$ & $1.15\pm0.09$ & & $1.83\pm0.06$ & $1.11\pm0.02$ & & $1.95\pm0.08$ & $1.10\pm0.06$ \\
-		& & \textsc{Exp-Glm} & $2.10\pm0.06$ & $1.07\pm0.03$ & & $1.88\pm0.05$ & $1.23\pm0.02$ & & $1.76\pm0.04$ & $1.08\pm0.05$ \\
-		
-		\cmidrule{2-11}                                                                            
-		& \multirow{4}{*}{\rotatebox{90}{Static}}                                                  
-		& 			  \npglm & $0.90\pm0.03$ & $0.46\pm0.01$ & & $0.89\pm0.04$ & $0.45\pm0.01$ & & $0.85\pm0.04$ & $0.43\pm0.03$ \\
-		& & \textsc{Exp-Glm} & $0.98\pm0.03$ & $0.52\pm0.03$ & & $0.97\pm0.03$ & $0.53\pm0.03$ & & $0.98\pm0.04$ & $0.54\pm0.03$ \\
-		& & \textsc{Ray-Glm} & $2.33\pm0.07$ & $1.32\pm0.04$ & & $2.29\pm0.04$ & $1.36\pm0.04$ & & $2.21\pm0.12$ & $1.34\pm0.08$ \\
-		& & \textsc{Exp-Glm} & $2.42\pm0.04$ & $1.41\pm0.06$ & & $2.40\pm0.08$ & $1.41\pm0.06$ & & $2.31\pm0.08$ & $1.40\pm0.07$ \\
-		
-		\bottomrule
-	\end{tabu}
-\end{table*}
-
 
 
 \begin{figure}[t]
@@ -585,7 +535,7 @@ Table~\ref{table:results2} compares the MAE and MRE of different models when we 
 		[
 		tiny,
 		width=0.56\columnwidth,
-		height=5cm,
+		height=4.5cm,
 		legend pos=south east,
 		legend style={font=\tiny,nodes={scale=0.75, transform shape}},
 		grid,
@@ -593,7 +543,7 @@ Table~\ref{table:results2} compares the MAE and MRE of different models when we 
 			/pgf/number format/.cd,
 			fixed,
 			fixed zerofill,
-			precision=2,
+			precision=1,
 			/tikz/.cd
 		},
 		xlabel=Absolute Error,
@@ -621,7 +571,7 @@ Table~\ref{table:results2} compares the MAE and MRE of different models when we 
 		[
 		tiny,
 		width=0.56\columnwidth,
-		height=5cm,
+		height=4.5cm,
 		legend pos=south east,
 		legend style={font=\tiny,nodes={scale=0.75, transform shape}},
 		grid,
@@ -629,7 +579,7 @@ Table~\ref{table:results2} compares the MAE and MRE of different models when we 
 			/pgf/number format/.cd,
 			fixed,
 			fixed zerofill,
-			precision=2,
+			precision=1,
 			/tikz/.cd
 		},
 		xlabel=Absolute Error,
@@ -655,4 +605,5 @@ Table~\ref{table:results2} compares the MAE and MRE of different models when we 
 	\label{fig:real}
 \end{figure}
 
-In the final experiment, we investigated that given an absolute error, for what fraction of test samples a model can have a lower prediction error than the given one. In other words, to evaluate the prediction accuracy of a model, we record the fraction of test samples for which the difference between their true time and the predicted one are lower than a given error, called \emph{tolerated error}. To this end, we again used the median as the predicted value by each model trained using dynamic features. The feature extraction and observation windows were set to 10 and 6, respectively, and the result for different tolerated error in range $\{0.5, 1.0, \dots, 3.0\}$ were plotted in Fig~\ref{fig:real}. The result demonstrate that \npglm can achieve a higher accuracy in all cases relative to other baselines, especially when dealing with lower tolerated errors.
+In the final experiment, we investigated that given an absolute error, for what fraction of test samples a model can have a lower prediction error than the given one. In other words, to evaluate the prediction accuracy of a model, we record the fraction of test samples for which the difference between their true time and the predicted one are lower than a given error, called \emph{tolerated error}. To this end, we again used the median as the predicted value by all models that were trained using our dynamic features. The feature extraction and observation windows were set to 10 and 6, respectively, and the result for different tolerated error in range $\{0.5, 1.0, \dots, 3.0\}$ were plotted in Fig~\ref{fig:real}. The result demonstrates that \npglm can achieve a higher accuracy in all cases relative to other baselines, especially when dealing with lower tolerated errors.
+
