@@ -341,7 +341,7 @@ def generate_samples(dataset, observation_begin, observation_end, conf_list, W, 
                                         # cite_new_old.append((paper_index, paper_id))
                                         if paper_id in written_by:
                                             for v in written_by[paper_id]:
-                                                if num_papers[u] >= paper_threshold and APPA[u, v]:
+                                                if num_papers[v] >= paper_threshold and not APPA[u, v]:
                                                     if (u, v) in observed_samples:
                                                         observed_samples[u, v] = min(year, observed_samples[u, v])
                                                     else:
