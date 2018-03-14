@@ -18,5 +18,7 @@
 /codes/tests/logl_gom_0
 /codes/tests/logl_ray_5
 /codes/tests/logl_ray_0
+/codes/features/delicious/data/
+/codes/features/movielens/data/
 
 *.pyc
