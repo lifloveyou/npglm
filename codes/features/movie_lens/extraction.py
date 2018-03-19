@@ -15,13 +15,14 @@ censoring_ratio = 0.5  # fraction of censored samples to all samples
 
 def extract_features(rate_sparse, assign_sparse, attach_sparse, played_by_sparse, directed_by_sparse,
                      has_genre_sparse, produced_in_sparse, observed_samples, censored_samples):
-    MP = [None for _ in range(17)]
-    events = [threading.Event() for _ in range(17)]
+    MP = [None for _ in range(11)]
+    events = [threading.Event() for _ in range(11)]
+    MUM_sparse = rate_sparse.T @ rate_sparse
 
     def worker(i):
         if i == 0:
-            logging.info('0: U-T-M')
-            MP[i] = assign_sparse @ attach_sparse
+            logging.info('0: U-M-A-M')
+            MP[i] = rate_sparse @ played_by_sparse @ played_by_sparse.T
         elif i == 1:
             logging.info('1: U-M-D-M')
             MP[i] = rate_sparse @ directed_by_sparse @ directed_by_sparse.T
@@ -29,70 +30,37 @@ def extract_features(rate_sparse, assign_sparse, attach_sparse, played_by_sparse
             logging.info('2: U-M-G-M')
             MP[i] = rate_sparse @ has_genre_sparse @ has_genre_sparse.T
         elif i == 3:
-            logging.info('3: U-M-A-M')
-            MP[i] = rate_sparse @ played_by_sparse @ played_by_sparse.T
+            logging.info('3: U-M-T-M')
+            MP[i] = rate_sparse @ attach_sparse.T @ attach_sparse
         elif i == 4:
             logging.info('4: U-M-C-M')
             MP[i] = rate_sparse @ produced_in_sparse @ produced_in_sparse.T
         elif i == 5:
-            events[0].wait()
-            events[15].wait()
-            logging.info('5: U-M-U-T-M')
-            MP[i] = MP[16] @ MP[0]
+            logging.info('5: U-M-U-M')
+            MP[i] = rate_sparse @ MUM_sparse
         elif i == 6:
             events[0].wait()
-            events[16].wait()
-            logging.info('6: U-T-M-U-M')
-            MP[i] = MP[0] @ MP[17]
+            logging.info('6: U-M-A-M-U-M')
+            MP[i] = MP[0] @ MUM_sparse
         elif i == 7:
-            events[2].wait()
-            events[16].wait()
-            logging.info('7: U-M-G-M-U-M')
-            MP[i] = MP[2] @ MP[17]
+            events[1].wait()
+            logging.info('7: U-M-D-M-U-M')
+            MP[i] = MP[1] @ MUM_sparse
         elif i == 8:
             events[2].wait()
-            events[15].wait()
-            logging.info('8: U-M-U-M-G-M')
-            MP[i] = MP[16] @ MP[2]
+            logging.info('8: U-M-G-M-U-M')
+            MP[i] = MP[2] @ MUM_sparse
         elif i == 9:
-            events[1].wait()
-            events[16].wait()
-            logging.info('9: U-M-D-M-U-M')
-            MP[i] = MP[1] @ MP[17]
+            events[4].wait()
+            logging.info('9: U-M-C-M-U-M')
+            MP[i] = MP[4] @ MUM_sparse
         elif i == 10:
-            events[1].wait()
-            events[15].wait()
-            logging.info('10: U-M-U-M-D-M')
-            MP[i] = MP[16] @ MP[1]
-        elif i == 11:
             events[3].wait()
-            events[15].wait()
-            logging.info('11: U-M-U-M-A-M')
-            MP[i] = MP[16] @ MP[3]
-        elif i == 12:
-            events[3].wait()
-            events[16].wait()
-            logging.info('12: U-M-A-M-U-M')
-            MP[i] = MP[3] @ MP[17]
-        elif i == 13:
-            events[4].wait()
-            events[15].wait()
-            logging.info('14: U-M-U-M-C-M')
-            MP[i] = MP[16] @ MP[4]
-        elif i == 14:
-            events[4].wait()
-            events[16].wait()
-            logging.info('15: U-M-C-M-U-M')
-            MP[i] = MP[4] @ MP[17]
-        elif i == 15:
-            logging.info('U-M-U')
-            MP[i] = rate_sparse @ rate_sparse.T
-        elif i == 16:
-            logging.info('M-U-M')
-            MP[i] = rate_sparse.T @ rate_sparse
+            logging.info('10: U-M-T-M-U-M')
+            MP[i] = MP[3] @ MUM_sparse
         events[i].set()
 
-    threads = [threading.Thread(target=worker, args=(i,)) for i in range(17)]
+    threads = [threading.Thread(target=worker, args=(i,)) for i in range(11)]
 
     for t in threads:
         t.start()
@@ -103,7 +71,7 @@ def extract_features(rate_sparse, assign_sparse, attach_sparse, played_by_sparse
     logging.info('Extracting...')
 
     def get_features(u, v):
-        fv = [MP[i][u, v] for i in range(15)]
+        fv = [MP[i][u, v] for i in range(11)]
         return fv
 
     X = []
