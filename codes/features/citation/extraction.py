@@ -6,34 +6,13 @@ import threading
 import numpy as np
 from scipy import sparse
 from nltk.corpus import stopwords as stop_words
+from codes.features.utils import Indexer, create_sparse
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s: %(message)s', datefmt='%H:%M:%S')
 stopwords = stop_words.words('english')
 stem = Stemmer.Stemmer('english')
 
 path = 'th'
-
-
-class Indexer:
-    def __init__(self):
-        self.indices = {'author': 0, 'venue': 0, 'term': 0, 'paper': 0}
-        self.mapping = {'author': {}, 'venue': {}, 'term': {}, 'paper': {}}
-
-    def get_index(self, category, query):
-        if query in self.mapping[category]:
-            return self.mapping[category][query]
-        else:
-            self.mapping[category][query] = self.indices[category]
-            self.indices[category] += 1
-            return self.indices[category] - 1
-
-
-def create_sparse(coo_list, m, n):
-    data = np.ones((len(coo_list),))
-    row = [pair[0] for pair in coo_list]
-    col = [pair[1] for pair in coo_list]
-    matrix = sparse.coo_matrix((data, (row, col)), shape=(m, n))
-    return matrix
 
 
 def parse_term(title):
@@ -46,7 +25,7 @@ def parse_term(title):
     return token
 
 
-def parse_dataset(dataset, feature_begin, feature_end, conf_list, indexer=Indexer()):
+def parse_dataset(dataset, feature_begin, feature_end, conf_list, indexer):
     write = []
     cite = []
     include = []
@@ -388,10 +367,10 @@ def generate_samples(dataset, observation_begin, observation_end, conf_list, W, 
 
 
 def main():
-    # conf_list_db = [
-    #     'KDD', 'PKDD', 'ICDM', 'SDM', 'PAKDD', 'SIGMOD', 'VLDB', 'ICDE', 'PODS', 'EDBT', 'SIGIR', 'ECIR',
-    #     'ACL', 'WWW', 'CIKM', 'NIPS', 'ICML', 'ECML', 'AAAI', 'IJCAI',
-    # ]
+    conf_list_db = [
+        'KDD', 'PKDD', 'ICDM', 'SDM', 'PAKDD', 'SIGMOD', 'VLDB', 'ICDE', 'PODS', 'EDBT', 'SIGIR', 'ECIR',
+        'ACL', 'WWW', 'CIKM', 'NIPS', 'ICML', 'ECML', 'AAAI', 'IJCAI',
+    ]
 
     conf_list_th = [
         'STOC', 'FOCS', 'COLT', 'LICS', 'SCG', 'SODA', 'SPAA', 'PODC', 'ISSAC', 'CRYPTO', 'EUROCRYPT', 'CONCUR',
@@ -405,43 +384,44 @@ def main():
     with open('data/dblp.txt') as file:
         dataset = file.read().splitlines()
 
-    # ow_set = [
-    #     # 3,
-    #     6,
-    #     # 9
-    # ]
-    #
-    # fw_set = [
-    #     5,
-    #     10,
-    #     # 15
-    # ]
-    #
-    # observation_end = 2016
-    # for ow_len in ow_set:
-    #     if ow_len == 6:
-    #         rel_fw_set = fw_set
-    #     else:
-    #         rel_fw_set = [10]
-    #     for fw_len in rel_fw_set:
-    #         feature_begin = observation_end - (fw_len + ow_len)
-    #         feature_end = feature_begin + fw_len
-    #         observation_begin = feature_end
-    #
-    #         W, C, I, P, indexer = parse_dataset(dataset, feature_begin, feature_end, conf_list_db)
-    #         observed_samples, censored_samples = generate_samples(dataset, observation_begin, observation_end,
-    #                                                               conf_list_db, W, C, indexer)
-    #         extract_features(feature_begin, feature_end, observation_begin, observation_end, W, C, P, I,
-    #                          observed_samples,
-    #                          censored_samples)
-    #
-    #         for t in range(feature_end - 1, feature_begin, -1):
-    #             print('=============%d=============' % t)
-    #             W, C, I, P, _ = parse_dataset(dataset, feature_begin, t, conf_list_db, indexer)
-    #             extract_features(feature_begin, t, observation_begin, observation_end, W, C, P, I, observed_samples,
-    #                              censored_samples)
+    ow_set = [
+        # 3,
+        6,
+        # 9
+    ]
 
-    parse_dataset(dataset, 1995, 2016, conf_list_th)
+    fw_set = [
+        5,
+        10,
+        # 15
+    ]
+
+    observation_end = 2016
+    for ow_len in ow_set:
+        if ow_len == 6:
+            rel_fw_set = fw_set
+        else:
+            rel_fw_set = [10]
+        for fw_len in rel_fw_set:
+            feature_begin = observation_end - (fw_len + ow_len)
+            feature_end = feature_begin + fw_len
+            observation_begin = feature_end
+
+            indexer = Indexer(['author','venue','term','paper'])
+            W, C, I, P, indexer = parse_dataset(dataset, feature_begin, feature_end, conf_list_db, indexer)
+            observed_samples, censored_samples = generate_samples(dataset, observation_begin, observation_end,
+                                                                  conf_list_db, W, C, indexer)
+            extract_features(feature_begin, feature_end, observation_begin, observation_end, W, C, P, I,
+                             observed_samples,
+                             censored_samples)
+
+            for t in range(feature_end - 1, feature_begin, -1):
+                print('=============%d=============' % t)
+                W, C, I, P, _ = parse_dataset(dataset, feature_begin, t, conf_list_db, indexer)
+                extract_features(feature_begin, t, observation_begin, observation_end, W, C, P, I, observed_samples,
+                                 censored_samples)
+
+    # parse_dataset(dataset, 1995, 2016, conf_list_th)
 
 
 if __name__ == '__main__':

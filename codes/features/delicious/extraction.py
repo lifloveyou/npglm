@@ -1,35 +1,16 @@
-from datetime import datetime
-from datetime import timedelta
-import random
-import pickle
 import logging
+import pickle
+import random
 import threading
+import time
+from datetime import datetime
+
 import numpy as np
 from scipy import sparse
-import time
-import tzlocal
+from codes.features.utils import Indexer, create_sparse
 
 
-class Indexer:
-    def __init__(self):
-        self.indices = {'user': 0, 'tag': 0, 'bookmark': 0}
-        self.mapping = {'user': {}, 'tag': {}, 'bookmark': {}}
-
-    def get_index(self, category, query):
-        if query in self.mapping[category]:
-            return self.mapping[category][query]
-        else:
-            self.mapping[category][query] = self.indices[category]
-            self.indices[category] += 1
-            return self.indices[category] - 1
-
-
-def create_sparse(coo_list, m, n):
-    data = np.ones((len(coo_list),))
-    row = [pair[0] for pair in coo_list]
-    col = [pair[1] for pair in coo_list]
-    matrix = sparse.coo_matrix((data, (row, col)), shape=(m, n))
-    return matrix
+censoring_ratio = 0.5  # fraction of censored samples to all samples
 
 
 def extract_features(f_beg, f_end, o_beg, o_end, contact_sparse, assign_sparse, attach_sparse,
@@ -113,32 +94,27 @@ def extract_features(f_beg, f_end, o_beg, o_end, contact_sparse, assign_sparse, 
 
 def sample_generator(usr_dataset, observation_begin, observation_end, contact_sparse, indexer):
     mapping = indexer.mapping
-
     U_U = contact_sparse @ contact_sparse.T
-
     observed_samples = {}
 
     for line in usr_dataset[1:]:
         line_items = line.split('\t')
-        contact_timestamp = int(line_items[2][:-3])
-        x = datetime.fromtimestamp(contact_timestamp)  # todo
-        if (observation_begin < contact_timestamp <= observation_end):
-            if line_items[0] in mapping['user']:
-                u = mapping['user'][line_items[0]]
-
-            if line_items[1] in mapping['user']:
-                v = mapping['user'][line_items[1]]
+        contact_timestamp = float(line_items[2])/1000
+        if observation_begin < contact_timestamp <= observation_end:
+            # if line_items[0] in mapping['user']:
+            u = mapping['user'][line_items[0]]
+            # if line_items[1] in mapping['user']:
+            v = mapping['user'][line_items[1]]
 
             observed_samples[u, v] = contact_timestamp
 
     logging.info('Observed samples found.')
-    print("Observed samples found.")
 
     nonzero = sparse.find(U_U)
     set_observed = set([(u, v) for (u, v) in observed_samples] + [(u, v) for (u, v) in zip(nonzero[0], nonzero[1])])
     censored_samples = {}
     N = U_U.shape[0]
-    M = len(observed_samples) // 5
+    M = len(observed_samples) // ((1 / censoring_ratio) - 1)
     user_list = [i for i in range(N)]
 
     while len(censored_samples) < M:
@@ -155,22 +131,28 @@ def sample_generator(usr_dataset, observation_begin, observation_end, contact_sp
     return observed_samples, censored_samples
 
 
-def generate_indexer(usr_dataset, usr_bm_tg, indexer=Indexer()):
-    index = None
-    users = None
-    tags = None
-    timestamp = None
-    bookmarks = None
+def generate_indexer(usr_dataset, usr_bm_tg):
+    indexer = Indexer(['user', 'tag', 'bookmark'])
 
     for line in usr_dataset[1:]:
         line_items = line.split('\t')
-        [indexer.get_index('user', line_items[i]) for i in range(2)]
+        indexer.index('user', line_items[0])
+        indexer.index('user', line_items[1])
 
     for line in usr_bm_tg[1:]:
         line_items = line.split('\t')
-        indexer.get_index('user', line_items[0])
-        indexer.get_index('bookmark', line_items[1])
-        indexer.get_index('tag', line_items[2])
+        indexer.index('user', line_items[0])
+        indexer.index('bookmark', line_items[1])
+        indexer.index('tag', line_items[2])
+
+    with open('data/metadata.txt', 'w') as output:
+        output.write('#Users: %d\n' % indexer.indices['user'])
+        output.write('#Tags: %d\n' % indexer.indices['tag'])
+        output.write('#Bookmarks: %d\n' % indexer.indices['bookmark'])
+
+        output.write('#Contact: %d\n' % len(usr_dataset))
+        output.write('#Assign : %d\n' % len(usr_bm_tg))
+        output.write('#Attach: %d\n' % len(usr_bm_tg))
 
     return indexer
 
@@ -180,37 +162,23 @@ def parse_dataset(usr_dataset, usr_bm_tg, feature_begin, feature_end, indexer):
     assign = []
     attach = []
 
-    index = None
-    users = None
-    tags = None
-    timestamp = None
-    bookmarks = None
-
     # while parsing the users dataset we extract the contact relationships
-    #  occuring between users in the feature extraction window
+    #  occurring between users in the feature extraction window
     for line in usr_dataset[1:]:  # skipping the first line (header) of the dataset
         line_items = line.split('\t')
-        x = datetime.fromtimestamp(
-            int(line_items[2][:-3])
-            # the timestamp int he dataset is represented with miliseconds, so
-            # we eliminate the last 3 charactars
-        )  # todo
+        contact_timestamp = float(line_items[2])/1000
 
-        contact_timestamp = int(line_items[2][:-3])
-
-        if (feature_begin < contact_timestamp <= feature_end):
-            users = [indexer.get_index('user', line_items[i]) for i in range(2)]
-            contact.append((users[0], users[1]))
+        if feature_begin < contact_timestamp <= feature_end:
+            user1, user2 = (indexer.get_index('user', line_items[i]) for i in range(2))
+            contact.append((user1, user2))
 
     # while parsing the user_tag_bookmark dataset we extract the relationships
-    #  occuring between these entities in the feature extraction window
+    #  occurring between these entities in the feature extraction window
     for line in usr_bm_tg[1:]:
         line_items = line.split('\t')
-        assign_time = int(line_items[3][:-3])
-        x = datetime.fromtimestamp(
-            int(line_items[3][:-3])
-        )  # todo
-        if (feature_begin < assign_time <= feature_end):
+        assign_time = float(line_items[3])/1000
+
+        if feature_begin < assign_time <= feature_end:
             user = indexer.get_index('user', line_items[0])
             bookmark = indexer.get_index('bookmark', line_items[1])
             tag = indexer.get_index('tag', line_items[2])
@@ -224,15 +192,6 @@ def parse_dataset(usr_dataset, usr_bm_tg, feature_begin, feature_end, indexer):
     contact_sparse = create_sparse(contact, num_usr, num_usr)
     assign_sparse = create_sparse(assign, num_usr, num_tag)
     attach_sparse = create_sparse(attach, num_tag, num_bookmark)
-
-    with open('%s/metadata_%d_%d.txt' % ("data", feature_begin, feature_end), 'w') as output:
-        output.write('#Users: %d\n' % num_usr)
-        output.write('#Tags: %d\n' % num_tag)
-        output.write('#Bookmarks: %d\n' % num_bookmark)
-
-        output.write('#Contact: %d\n' % len(contact))
-        output.write('#Assign : %d\n' % len(assign))
-        output.write('#Attach: %d\n' % len(attach))
 
     return contact_sparse, assign_sparse, attach_sparse
 
@@ -259,26 +218,21 @@ def main():
     with open('data/user_taggedbookmarks-timestamps.dat') as usr_bm_tg:
         usr_bm_tg_dataset = usr_bm_tg.read().splitlines()
 
-    feature_begin = datetime(2006, 1, 1)
-    observation_begin = datetime(2008, 1, 1)
-    observation_end = datetime(2009, 1, 1)
-    feature_end = datetime(2008, 1, 1)
-
-    feature_begin = int(time.mktime(feature_begin.timetuple()))  # converting datetime format to timestamp
-    feature_end = int(time.mktime(feature_end.timetuple()))
-    observation_begin = int(time.mktime(observation_begin.timetuple()))
-    observation_end = int(time.mktime(observation_end.timetuple()))
+    feature_begin = datetime(2006, 1, 1).timestamp()
+    observation_begin = datetime(2008, 1, 1).timestamp()
+    observation_end = datetime(2009, 1, 1).timestamp()
+    feature_end = datetime(2008, 1, 1).timestamp()
 
     # first we need to parse the whole data set to capture all of the entities and assign indexes to them
     indexer = generate_indexer(usr_dataset, usr_bm_tg_dataset)
 
     # in this method we parse our dataset in the feature extraction window, and generate
-    # the sparse amtrixes dedicated to each link
+    # the sparse matrices dedicated to each link
     contact_sparse, assign_sparse, attach_sparse = parse_dataset(usr_dataset, usr_bm_tg_dataset,
                                                                  feature_begin, feature_end, indexer)
 
     # in this method we would like to extract the target relationships that have been
-    ## generated in the observation window and after observation_end_time e.g. censored sample
+    # generated in the observation window and after observation_end_time e.g. censored sample
     observed_samples, censored_samples = sample_generator(usr_dataset, observation_begin, observation_end,
                                                           contact_sparse, indexer)
 

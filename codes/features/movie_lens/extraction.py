@@ -6,37 +6,14 @@ from datetime import datetime
 
 import numpy as np
 from scipy import sparse
+from codes.features.utils import Indexer, create_sparse
 
 rating_thresh = 3
 actor_thresh = 5
 censoring_ratio = 0.5  # fraction of censored samples to all samples
 
 
-def create_sparse(coo_list, m, n):
-    data = np.ones((len(coo_list),))
-    row = [pair[0] for pair in coo_list]
-    col = [pair[1] for pair in coo_list]
-    matrix = sparse.coo_matrix((data, (row, col)), shape=(m, n))
-    return matrix
-
-
-class Indexer:
-    def __init__(self):
-        self.indices = {'user': 0, 'tag': 0, 'movie': 0, 'actor': 0, 'director': 0, 'genre': 0, 'country': 0}
-        self.mapping = {'user': {}, 'tag': {}, 'movie': {}, 'actor': {},
-                        'director': {}, 'genre': {}, 'country': {}}
-
-    def get_index(self, category, query):
-        if query in self.mapping[category]:
-            return self.mapping[category][query]
-        else:
-            self.mapping[category][query] = self.indices[category]
-            self.indices[category] += 1
-            return self.indices[category] - 1
-
-
-def extract_features(feature_begin, feature_end, observation_begin, observation_end, rate_sparse,
-                     assign_sparse, attach_sparse, played_by_sparse, directed_by_sparse,
+def extract_features(rate_sparse, assign_sparse, attach_sparse, played_by_sparse, directed_by_sparse,
                      has_genre_sparse, produced_in_sparse, observed_samples, censored_samples):
     MP = [None for _ in range(17)]
     events = [threading.Event() for _ in range(17)]
@@ -155,9 +132,10 @@ def extract_features(feature_begin, feature_end, observation_begin, observation_
 
 
 def generate_indexer(user_rates_movies_ds, user_tags_movies_ds, movie_actor_ds,
-                     movie_director_ds, movie_genre_ds, movie_countries_ds, indexer=Indexer()):
+                     movie_director_ds, movie_genre_ds, movie_countries_ds):
     # min_time = 10000000000000000000000000000000000000
     # max_time = -1
+    indexer = Indexer(['user', 'tag', 'movie', 'actor', 'director', 'genre', 'country'])
 
     for line in user_rates_movies_ds[1:]:
         line_items = line.split('\t')
@@ -170,36 +148,36 @@ def generate_indexer(user_rates_movies_ds, user_tags_movies_ds, movie_actor_ds,
             #     if max_time < int(line_items[3][:-3]):
             #         max_time = int(line_items[3][:-3])
 
-            indexer.get_index('user', line_items[0])
-            indexer.get_index('movie', line_items[1])
+            indexer.index('user', line_items[0])
+            indexer.index('movie', line_items[1])
 
     for line in user_tags_movies_ds[1:]:
         line_items = line.split('\t')
-        indexer.get_index('user', line_items[0])
-        indexer.get_index('movie', line_items[1])
-        indexer.get_index('tag', line_items[2])
+        indexer.index('user', line_items[0])
+        indexer.index('movie', line_items[1])
+        indexer.index('tag', line_items[2])
 
     for line in movie_actor_ds[1:]:
         line_items = line.split('\t')
         ranking = int(line_items[3])
         if ranking < actor_thresh:
-            indexer.get_index('movie', line_items[0])
-            indexer.get_index('actor', line_items[1])
+            indexer.index('movie', line_items[0])
+            indexer.index('actor', line_items[1])
 
     for line in movie_director_ds[1:]:
         line_items = line.split('\t')
-        indexer.get_index('movie', line_items[0])
-        indexer.get_index('director', line_items[1])
+        indexer.index('movie', line_items[0])
+        indexer.index('director', line_items[1])
 
     for line in movie_genre_ds[1:]:
         line_items = line.split('\t')
-        indexer.get_index('movie', line_items[0])
-        indexer.get_index('genre', line_items[1])
+        indexer.index('movie', line_items[0])
+        indexer.index('genre', line_items[1])
 
     for line in movie_countries_ds[1:]:
         line_items = line.split('\t')
-        indexer.get_index('movie', line_items[0])
-        indexer.get_index('country', line_items[1])
+        indexer.index('movie', line_items[0])
+        indexer.index('country', line_items[1])
 
     # print(datetime.fromtimestamp(
     #     min_time
@@ -369,11 +347,6 @@ def main():
     observation_end = datetime(2009, 1, 1).timestamp()
     feature_end = datetime(2008, 1, 1).timestamp()
 
-    # feature_begin = int(time.mktime(feature_begin.timetuple()))  # converting datetime format to timestamp
-    # feature_end = int(time.mktime(feature_end.timetuple()))
-    # observation_begin = int(time.mktime(observation_begin.timetuple()))
-    # observation_end = int(time.mktime(observation_end.timetuple()))
-
     indexer = generate_indexer(user_rates_movies_ds, user_tags_movies_ds, movie_actor_ds,
                                movie_director_ds, movie_genre_ds, movie_countries_ds)
     rate_sparse, assign_sparse, attach_sparse, played_by_sparse, directed_by_sparse, \
@@ -383,8 +356,7 @@ def main():
                                                          movie_countries_ds, feature_begin, feature_end, indexer)
     observed_samples, censored_samples = sample_generator(user_rates_movies_ds, observation_begin,
                                                           observation_end, rate_sparse, indexer)
-    X, Y, T = extract_features(feature_begin, feature_end, observation_begin, observation_end, rate_sparse,
-                               assign_sparse, attach_sparse, played_by_sparse, directed_by_sparse,
+    X, Y, T = extract_features(rate_sparse, assign_sparse, attach_sparse, played_by_sparse, directed_by_sparse,
                                has_genre_sparse, produced_in_sparse, observed_samples, censored_samples)
 
     pickle.dump({'X': np.array(X), 'Y': np.array(Y), 'T': np.array(T)},
