@@ -7,55 +7,43 @@ from datetime import datetime
 
 import numpy as np
 from scipy import sparse
-from codes.features.utils import Indexer, create_sparse
-
+from codes.features.utils import Indexer, create_sparse, timestamp_delta_generator
 
 censoring_ratio = 0.5  # fraction of censored samples to all samples
 
 
-def extract_features(f_beg, f_end, o_beg, o_end, contact_sparse, assign_sparse, attach_sparse,
-                     observed_samples, censored_samples):
-    MP = [None for _ in range(8)]
-    events = [threading.Event() for _ in range(8)]
+def extract_features(contact_sparse, save_sparse, attach_sparse, observed_samples, censored_samples):
+    num_metapaths = 6
+    MP = [None for _ in range(num_metapaths)]
+    events = [threading.Event() for _ in range(num_metapaths)]
 
     def worker(i):
         if i == 0:
             logging.info('0: U-U-U')
             MP[i] = contact_sparse @ contact_sparse
         elif i == 1:
-            logging.info('1: U-T-U')
-            MP[i] = assign_sparse @ assign_sparse.T
+            logging.info('1: U-B-U')
+            MP[i] = save_sparse @ save_sparse.T
         elif i == 2:
-            logging.info('2: U-T-B-T-U')
-            MP[i] = assign_sparse @ attach_sparse @ attach_sparse.T @ assign_sparse.T
+            logging.info('2: U-B-T-B-U')
+            UBT = save_sparse @ attach_sparse.T
+            MP[i] = UBT @ UBT.T
         elif i == 3:
             events[0].wait()
-            logging.info('3: U-U-U-U-U')
-            MP[i] = MP[0] @ MP[0]
+            logging.info('3: U-U-U-U')
+            MP[i] = MP[0] @ contact_sparse
         elif i == 4:
-            events[0].wait()
             events[1].wait()
-            logging.info('4: U-T-U-U-U')
-            MP[i] = MP[1] @ MP[0]
+            logging.info('4: U-B-U-U')
+            MP[i] = MP[1] @ contact_sparse
         elif i == 5:
             events[2].wait()
-            events[0].wait()
-            logging.info('5: U-T-B-T-U-U-U')
-            MP[i] = MP[2] @ MP[0]
-        elif i == 6:
-            events[0].wait()
-            events[2].wait()
-            logging.info('6: U-U-U-T-U')
-            MP[i] = MP[0] @ MP[1]
-        elif i == 7:
-            events[0].wait()
-            events[2].wait()
-            logging.info('7: U-U-U-T-B-T-U')
-            MP[i] = MP[0] @ MP[2]
+            logging.info('5: U-B-T-B-U-U')
+            MP[i] = MP[2] @ contact_sparse
 
         events[i].set()
 
-    threads = [threading.Thread(target=worker, args=(i,)) for i in range(8)]
+    threads = [threading.Thread(target=worker, args=(i,)) for i in range(num_metapaths)]
 
     for t in threads:
         t.start()
@@ -66,7 +54,7 @@ def extract_features(f_beg, f_end, o_beg, o_end, contact_sparse, assign_sparse, 
     logging.info('Extracting...')
 
     def get_features(u, v):
-        fv = [MP[i][u, v] for i in range(8)]
+        fv = [MP[i][u, v] for i in range(num_metapaths)]
         return fv
 
     X = []
@@ -87,9 +75,7 @@ def extract_features(f_beg, f_end, o_beg, o_end, contact_sparse, assign_sparse, 
         Y.append(False)
         T.append(t)
 
-    pickle.dump({'X': np.array(X), 'Y': np.array(Y), 'T': np.array(T)},
-                open('%s/dataset_%d_%d_%d_%d.pkl' % ("data", int(f_beg), int(f_end), int(o_beg), int(o_end)), 'wb')
-                )
+    return np.array(X), np.array(Y), np.array(T)
 
 
 def sample_generator(usr_dataset, observation_begin, observation_end, contact_sparse, indexer):
@@ -99,7 +85,7 @@ def sample_generator(usr_dataset, observation_begin, observation_end, contact_sp
 
     for line in usr_dataset[1:]:
         line_items = line.split('\t')
-        contact_timestamp = float(line_items[2])/1000
+        contact_timestamp = float(line_items[2]) / 1000
         if observation_begin < contact_timestamp <= observation_end:
             # if line_items[0] in mapping['user']:
             u = mapping['user'][line_items[0]]
@@ -133,40 +119,55 @@ def sample_generator(usr_dataset, observation_begin, observation_end, contact_sp
 
 def generate_indexer(usr_dataset, usr_bm_tg):
     indexer = Indexer(['user', 'tag', 'bookmark'])
+    min_time = 1e30
+    max_time = -1
 
     for line in usr_dataset[1:]:
         line_items = line.split('\t')
         indexer.index('user', line_items[0])
         indexer.index('user', line_items[1])
+        contact_timestamp = float(line_items[2]) / 1000
+        min_time = min(min_time, contact_timestamp)
+        max_time = max(max_time, contact_timestamp)
 
     for line in usr_bm_tg[1:]:
         line_items = line.split('\t')
         indexer.index('user', line_items[0])
         indexer.index('bookmark', line_items[1])
         indexer.index('tag', line_items[2])
+        tag_timestamp = float(line_items[3]) / 1000
+        min_time = min(min_time, tag_timestamp)
+        max_time = max(max_time, tag_timestamp)
 
     with open('data/metadata.txt', 'w') as output:
+        output.write('Nodes:\n')
+        output.write('-----------------------------\n')
         output.write('#Users: %d\n' % indexer.indices['user'])
         output.write('#Tags: %d\n' % indexer.indices['tag'])
         output.write('#Bookmarks: %d\n' % indexer.indices['bookmark'])
-
+        output.write('\nEdges:\n')
+        output.write('-----------------------------\n')
         output.write('#Contact: %d\n' % len(usr_dataset))
-        output.write('#Assign : %d\n' % len(usr_bm_tg))
+        output.write('#Save : %d\n' % len(usr_bm_tg))
         output.write('#Attach: %d\n' % len(usr_bm_tg))
+        output.write('\nTime Span:\n')
+        output.write('-----------------------------\n')
+        output.write('From: %s\n' % datetime.fromtimestamp(min_time))
+        output.write('To: %s\n' % datetime.fromtimestamp(max_time))
 
     return indexer
 
 
 def parse_dataset(usr_dataset, usr_bm_tg, feature_begin, feature_end, indexer):
     contact = []
-    assign = []
+    save = []
     attach = []
 
     # while parsing the users dataset we extract the contact relationships
     #  occurring between users in the feature extraction window
     for line in usr_dataset[1:]:  # skipping the first line (header) of the dataset
         line_items = line.split('\t')
-        contact_timestamp = float(line_items[2])/1000
+        contact_timestamp = float(line_items[2]) / 1000
 
         if feature_begin < contact_timestamp <= feature_end:
             user1, user2 = (indexer.get_index('user', line_items[i]) for i in range(2))
@@ -176,13 +177,13 @@ def parse_dataset(usr_dataset, usr_bm_tg, feature_begin, feature_end, indexer):
     #  occurring between these entities in the feature extraction window
     for line in usr_bm_tg[1:]:
         line_items = line.split('\t')
-        assign_time = float(line_items[3])/1000
+        assign_time = float(line_items[3]) / 1000
 
         if feature_begin < assign_time <= feature_end:
             user = indexer.get_index('user', line_items[0])
             bookmark = indexer.get_index('bookmark', line_items[1])
             tag = indexer.get_index('tag', line_items[2])
-            assign.append((user, tag))
+            save.append((user, bookmark))
             attach.append((tag, bookmark))
 
     num_usr = indexer.indices['user']
@@ -190,29 +191,15 @@ def parse_dataset(usr_dataset, usr_bm_tg, feature_begin, feature_end, indexer):
     num_bookmark = indexer.indices['bookmark']
 
     contact_sparse = create_sparse(contact, num_usr, num_usr)
-    assign_sparse = create_sparse(assign, num_usr, num_tag)
+    save_sparse = create_sparse(save, num_usr, num_tag)
     attach_sparse = create_sparse(attach, num_tag, num_bookmark)
 
-    return contact_sparse, assign_sparse, attach_sparse
-
-
-def date_subtractor(begin_time, end_time):
-    begin_time = int(time.mktime(begin_time.timetuple()))
-    end_time = int(time.mktime(end_time.timetuple()))
-
-    return (end_time - begin_time)
-
-
-def timestamp_delta_generator(days, months, years):
-    days_delta_timestamp_unit = date_subtractor(datetime(2006, 1, 1), datetime(2006, 1, 2))
-    months_delta_timestamp_unit = date_subtractor(datetime(2006, 1, 1), datetime(2006, 2, 1))
-    years_delta_timestamp_unit = date_subtractor(datetime(2006, 1, 1), datetime(2007, 1, 1))
-
-    return days * days_delta_timestamp_unit + months * months_delta_timestamp_unit \
-           + years_delta_timestamp_unit * years
+    return contact_sparse, save_sparse, attach_sparse
 
 
 def main():
+    logging.basicConfig(level=logging.INFO, format='%(asctime)s: %(message)s', datefmt='%H:%M:%S')
+
     with open('data/user_contacts-timestamps.dat') as usr_usr:
         usr_dataset = usr_usr.read().splitlines()
     with open('data/user_taggedbookmarks-timestamps.dat') as usr_bm_tg:
@@ -228,29 +215,29 @@ def main():
 
     # in this method we parse our dataset in the feature extraction window, and generate
     # the sparse matrices dedicated to each link
-    contact_sparse, assign_sparse, attach_sparse = parse_dataset(usr_dataset, usr_bm_tg_dataset,
-                                                                 feature_begin, feature_end, indexer)
+    contact_sparse, save_sparse, attach_sparse = parse_dataset(usr_dataset, usr_bm_tg_dataset,
+                                                               feature_begin, feature_end, indexer)
 
     # in this method we would like to extract the target relationships that have been
     # generated in the observation window and after observation_end_time e.g. censored sample
     observed_samples, censored_samples = sample_generator(usr_dataset, observation_begin, observation_end,
                                                           contact_sparse, indexer)
 
-    extract_features(feature_begin, feature_end, observation_begin, observation_end, contact_sparse,
-                     assign_sparse, attach_sparse, observed_samples, censored_samples)
+    X, Y, T = extract_features(contact_sparse, save_sparse, attach_sparse, observed_samples, censored_samples)
+    X_list = [X]
+    delta = timestamp_delta_generator(years=1)
+    # print(delta)
+    # print(observation_end - observation_begin)
 
-    delta = timestamp_delta_generator(0, 0, 1)
-    print(delta)
-    print(observation_end - observation_begin)
-
-    for t in range(feature_end - delta, feature_begin - 1, -delta):
-        print('=============%d=============' % t)
+    for t in range(int(feature_end-delta), int(feature_begin), -delta):
         print(datetime.fromtimestamp(t))
-        contact_sparse, assign_sparse, attach_sparse = parse_dataset(
+        # print(datetime.fromtimestamp(t))
+        contact_sparse, save_sparse, attach_sparse = parse_dataset(
             usr_dataset, usr_bm_tg_dataset, feature_begin, t, indexer)
-        extract_features(feature_begin, t, observation_begin, observation_end, contact_sparse,
-                         assign_sparse, attach_sparse, observed_samples,
-                         censored_samples)
+        X, _, _ = extract_features(contact_sparse, save_sparse, attach_sparse, observed_samples, censored_samples)
+        X_list.append(X)
+
+    pickle.dump({'X': X_list, 'Y': Y, 'T': T}, open('data/dataset.pkl', 'wb'))
 
 
 if __name__ == '__main__':
