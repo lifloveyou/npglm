@@ -22,6 +22,24 @@ def get_model(dist):
     }[dist]
 
 
+def generate_c_index(T_true, T_pred, Y):
+    total_number_of_pairs = 0
+    number_of_correct_predictions = 0
+
+    for i in range(len(T_true)):
+        for j in range(len(T_true) - 1, i, -1):
+            if Y[i] != 0 or Y[j] != 0:  # if one or both of the samples are in observation window
+                total_number_of_pairs += 1
+                if T_true[i] > T_true[j] and T_pred[i] > T_pred[j]:
+                    number_of_correct_predictions += 1
+                if T_true[i] < T_true[j] and T_pred[i] < T_pred[j]:
+                    number_of_correct_predictions += 1
+                if T_true[i] == T_true[j] and T_pred[i] == T_pred[j]:
+                    number_of_correct_predictions += 1
+
+    return number_of_correct_predictions / total_number_of_pairs
+
+
 def prepare_dataset(dataset, fw, ow, dynamic=False):
     observation_end = 2016
     feature_begin = observation_end - (fw + ow)

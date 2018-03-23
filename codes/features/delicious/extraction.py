@@ -195,23 +195,6 @@ def parse_dataset(usr_dataset, usr_bm_tg, feature_begin, feature_end, indexer):
     attach_sparse = create_sparse(attach, num_tag, num_bookmark)
 
     return contact_sparse, save_sparse, attach_sparse
-def generate_c_index(T_true, T_pred, y):
-
-    total_number_of_pairs = 0
-    number_of_correct_predictions = 0;
-
-    for i in range(len(T_true)):
-        for j in range(len(T_true) - 1, i , -1):
-            if y[i]!=0 or y[j]!=0: #if one or both of the samples are in observation window
-                total_number_of_pairs += 1
-                if(T_true[i] >T_true[j] and  T_pred[i] >T_pred[j]):
-                    number_of_correct_predictions +=1
-                if (T_true[i] < T_true[j] and T_pred[i] < T_pred[j]):
-                    number_of_correct_predictions += 1
-                if (T_true[i] == T_true[j] and T_pred[i] == T_pred[j]):
-                    number_of_correct_predictions += 1
-
-    return number_of_correct_predictions/total_number_of_pairs
 
 
 def main():
@@ -246,7 +229,7 @@ def main():
     # print(delta)
     # print(observation_end - observation_begin)
 
-    for t in range(int(feature_end-delta), int(feature_begin), -int(delta)):
+    for t in range(int(feature_end - delta), int(feature_begin), -int(delta)):
         print(datetime.fromtimestamp(t))
         # print(datetime.fromtimestamp(t))
         contact_sparse, save_sparse, attach_sparse = parse_dataset(
@@ -258,14 +241,13 @@ def main():
 
     T_pred = []
     T_true = []
-    Y=[]
+    Y = []
     for i in range(100):
         T_true.append(random.randint(observation_begin, observation_end))
         T_pred.append(random.randint(observation_begin, observation_end))
-        Y.append(random.randint(0,1))
+        Y.append(random.randint(0, 1))
 
     generate_c_index(T_true, T_pred, Y)
-
 
 
 if __name__ == '__main__':
