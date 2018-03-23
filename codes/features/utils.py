@@ -9,15 +9,16 @@ class Indexer:
         self.mapping = {node: {} for node in nodes}
 
     def index(self, category, query):
-        self.mapping[category][query] = self.indices[category]
-        self.indices[category] += 1
-        return self.indices[category] - 1
+        if query not in self.mapping[category]:
+            self.mapping[category][query] = self.indices[category]
+            self.indices[category] += 1
+        return self.mapping[category][query]
 
     def get_index(self, category, query):
-        if query in self.mapping[category]:
+        try:
             return self.mapping[category][query]
-        else:
-            return self.index(category, query)
+        except KeyError:
+            return None
 
 
 def create_sparse(coo_list, m, n):
