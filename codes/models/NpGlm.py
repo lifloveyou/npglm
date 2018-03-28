@@ -16,7 +16,7 @@ class NpGlm(Model):
 
     def fit(self, X, Y, T):  # X,Y, and T must be sorted by T beforehand
         self.t = T
-        max_iter = 100000
+        max_iter = 1000
         d = X.shape[1]
         self.w = np.zeros((d, 1))
         f_old = np.inf

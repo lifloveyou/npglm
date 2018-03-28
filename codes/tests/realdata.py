@@ -8,6 +8,7 @@ from codes.models.PowGlm import PowGlm
 from codes.models.RayGlm import RayGlm
 from sklearn.model_selection import StratifiedKFold
 from codes.features.delicious.extraction import run as delicious_run
+from codes.features.utils import timestamp_delta_generator
 from codes.features.autoencoder import encode
 
 # from codes.features.movielens.extraction import run as movielens_run
@@ -47,6 +48,7 @@ def generate_c_index(T_true, T_pred, Y):
 
 def prepare_data(X, Y, T):
     T = T.astype(np.float64)
+    T /= timestamp_delta_generator()
     min_T = min(T)
     T += np.random.rand(len(T)) * Y - min_T
 
@@ -62,15 +64,16 @@ def evaluate(model: Model, X_train: np.ndarray, Y_train: np.ndarray, T_train: np
              Y_test: np.ndarray, T_test: np.ndarray):
     model.fit(X_train, Y_train, T_train)
 
-    # T_hat = model.mean(X_test)
-    T_hat = model.quantile(X_test, .5).ravel()
-    T_hat = np.fmin(T_hat, max(T_test))
+    # T_pred = model.mean(X_test)
+    T_pred = model.quantile(X_test, .5).ravel()
+    T_pred = np.fmin(T_pred, max(T_test))
 
-    c_index = generate_c_index(T_test, T_hat, Y_test)
+    c_index = generate_c_index(T_test, T_pred, Y_test)
 
     k = Y_test.sum()
     # X_test = X_test[:k, :]
     T_test = T_test[:k]
+    T_pred = T_pred[:k]
 
     threshold = [.5, 1, 1.5, 2, 2.5, 3]
 
@@ -87,7 +90,7 @@ def evaluate(model: Model, X_train: np.ndarray, Y_train: np.ndarray, T_train: np
     # C2 = np.logical_and(lb2 <= T_test, T_test <= ub2)
     # C3 = np.logical_and(lb3 <= T_test, T_test <= ub3)
     #
-    res = np.fabs(T_test - T_hat)
+    res = np.fabs(T_test - T_pred)
     rel = res / T_test
 
     distance = np.zeros((len(threshold)))
@@ -155,8 +158,8 @@ def main():
 
         mean = results.mean(axis=0)
         std = results.std(axis=0)
-        print('& $%.2f\\pm%.2f$ & $%.2f\\pm%.2f$ &' % (mean[0], std[0], mean[1], std[1]), end=" ")
-
+        # print('& $%.2f\\pm%.2f$ & $%.2f\\pm%.2f$ &' % (mean[0], std[0], mean[1], std[1]), end=" ")
+        print('MAE=%.2f\tMRE=%.2f' % (mean[0], mean[1]))
     print("")
 
 
