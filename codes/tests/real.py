@@ -331,14 +331,11 @@ def main():
     #         j = 0
     #     print("")
 
-
-
-
     for path in ['db', 'th']:
         print(path)
 
-        table = np.zeros((4, 12))
-        i = j = 0
+        # table = np.zeros((4, 12))
+        # i = j = 0
 
         print('static')
 
@@ -367,23 +364,23 @@ def main():
                     results.append(result)
 
                 results = np.array(results)
-                if path == 'th':
-                    results += results * np.random.randint(0, 10, results.shape) / 100
+                # if path == 'th':
+                #     results += results * np.random.randint(0, 10, results.shape) / 100
 
                 mean = results.mean(axis=0)
                 std = results.std(axis=0)
                 print('& $%.2f\\pm%.2f$ & $%.2f\\pm%.2f$ &' % (mean[0], std[0], mean[1], std[1]), end=" ")
 
-                m = np.random.randint(10, 25, 2) / 100
-                s = np.random.randint(1, 10, 2) / 100
-
-                table[i, j:j + 4:2] = mean - mean * m
-                table[i, j + 1:j + 4:2] = s
-                j += 4
+                # m = np.random.randint(10, 25, 2) / 100
+                # s = np.random.randint(1, 10, 2) / 100
+                #
+                # table[i, j:j + 4:2] = mean - mean * m
+                # table[i, j + 1:j + 4:2] = s
+                # j += 4
 
             print("\\\\")
-            i += 1
-            j = 0
+            # i += 1
+            # j = 0
         print("")
 
 

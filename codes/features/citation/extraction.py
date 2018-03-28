@@ -9,7 +9,7 @@ from scipy import sparse
 from nltk.corpus import stopwords as stop_words
 from codes.features.utils import Indexer, create_sparse
 
-path = 'db'
+path = 'th'
 censoring_ratio = 0.5  # fraction of censored samples to all samples
 paper_threshold = 5
 
@@ -52,11 +52,11 @@ def parse_term(title):
 def generate_papers(datafile, feature_begin, feature_end, observation_begin, observation_end, conf_list):
     logging.info('generating papers ...')
 
-    try:
-        result = pickle.load(open('data/papers_%s.pkl' % path, 'rb'))
-        return result
-    except IOError:
-        pass
+    # try:
+    #     result = pickle.load(open('data/papers_%s.pkl' % path, 'rb'))
+    #     return result
+    # except IOError:
+    #     pass
 
     indexer = Indexer(['author', 'paper', 'term', 'venue'])
 
@@ -402,16 +402,21 @@ def main():
         ]
     }[path]
 
-    feature_begin = 2005
-    feature_end = 2010
-    observation_begin = 2010
+    delta = 1
+    ow = 3
+    n_snaps = 5
+
     observation_end = 2016
+    observation_begin = observation_end - ow
+    feature_end = observation_begin
+    feature_begin = feature_end - delta*n_snaps
 
     papers_feat_window, papers_obs_window, counter = generate_papers('data/dblp.txt', feature_begin, feature_end,
                                                                      observation_begin, observation_end,
                                                                      conf_list)
     W, C, I, P = parse_dataset(papers_feat_window, feature_begin, feature_end, counter)
     observed_samples, censored_samples = generate_samples(papers_obs_window, W, C)
+
     X, Y, T = extract_features(W, C, P, I, observed_samples, censored_samples)
     X_list = [X]
     delta = 1
@@ -422,8 +427,8 @@ def main():
         X, _, _ = extract_features(W, C, P, I, observed_samples, censored_samples)
         X_list.append(X)
 
-    pickle.dump({'X': X_list, 'Y': Y, 'T': T}, open('data/dataset_%s.pkl' % path, 'wb'))
-    # parse_dataset(dataset, 1995, 2016, conf_list_th)
+    # X = np.stack(X_list[::-1], axis=1)  # X.shape = (n_samples, timesteps, n_features)
+    pickle.dump({'X': X_list[::-1], 'Y': Y, 'T': T}, open('data/dataset_%s.pkl' % path, 'wb'))
 
 
 if __name__ == '__main__':

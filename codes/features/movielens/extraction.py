@@ -311,10 +311,19 @@ def main():
     with open('data/movie_countries.dat') as movie_countries_ds:
         movie_countries_ds = movie_countries_ds.read().splitlines()
 
-    feature_begin = datetime(2006, 1, 1).timestamp()
-    feature_end = datetime(2008, 1, 1).timestamp()
-    observation_begin = datetime(2008, 1, 1).timestamp()
+    delta = timestamp_delta_generator(months=3)  # [1 2 3]
+    ow = 24  # [12 18 24]
+    n_snaps = 15  # [9 12 15]
+
     observation_end = datetime(2009, 1, 1).timestamp()
+    observation_begin = observation_end - timestamp_delta_generator(months=ow)
+    feature_end = observation_begin
+    feature_begin = feature_end - n_snaps * delta
+
+    # feature_begin = datetime(2006, 1, 1).timestamp()
+    # feature_end = datetime(2008, 1, 1).timestamp()
+    # observation_begin = datetime(2008, 1, 1).timestamp()
+    # observation_end = datetime(2009, 1, 1).timestamp()
 
     indexer = generate_indexer(user_rates_movies_ds, user_tags_movies_ds, movie_actor_ds,
                                movie_director_ds, movie_genre_ds, movie_countries_ds, feature_begin, feature_end)
@@ -331,7 +340,6 @@ def main():
                                has_genre_sparse, produced_in_sparse, observed_samples, censored_samples)
     X_list = [X]
 
-    delta = int(timestamp_delta_generator(months=3))
     # print(delta)
     # print(observation_end - observation_begin)
 
@@ -349,7 +357,8 @@ def main():
                                    has_genre_sparse, produced_in_sparse, observed_samples, censored_samples)
         X_list.append(X)
 
-    pickle.dump({'X': X_list, 'Y': Y, 'T': T}, open('data/dataset.pkl', 'wb'))
+    # X = np.stack(X_list[::-1], axis=1)  # X.shape = (n_samples, timesteps, n_features)
+    pickle.dump({'X': X_list[::-1], 'Y': Y, 'T': T}, open('data/dataset.pkl', 'wb'))
 
 
 if __name__ == '__main__':

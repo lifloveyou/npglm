@@ -1,3 +1,4 @@
+import os
 import logging
 import pickle
 import random
@@ -195,18 +196,29 @@ def parse_dataset(usr_dataset, usr_bm_tg, feature_begin, feature_end, indexer):
     return contact_sparse, save_sparse, attach_sparse
 
 
-def main():
+def run(delta, observation_window, n_snapshots):
     logging.basicConfig(level=logging.INFO, format='%(asctime)s: %(message)s', datefmt='%H:%M:%S')
-
+    dir_path = os.path.dirname(os.path.realpath(__file__))
+    cur_path = os.getcwd()
+    os.chdir(dir_path)
     with open('data/user_contacts-timestamps.dat') as usr_usr:
         usr_dataset = usr_usr.read().splitlines()
     with open('data/user_taggedbookmarks-timestamps.dat') as usr_bm_tg:
         usr_bm_tg_dataset = usr_bm_tg.read().splitlines()
 
-    feature_begin = datetime(2007, 1, 1).timestamp()
-    feature_end = datetime(2008, 1, 1).timestamp()
-    observation_begin = datetime(2008, 1, 1).timestamp()
-    observation_end = datetime(2009, 1, 1).timestamp()
+    delta = timestamp_delta_generator(months=delta)  # [1 2 3]
+    # observation_window = 24  # [12 18 24]
+    # n_snapshots = 15  # [9 12 15]
+
+    observation_end = datetime(2010, 1, 1).timestamp()
+    observation_begin = observation_end - timestamp_delta_generator(months=observation_window)
+    feature_end = observation_begin
+    feature_begin = feature_end - n_snapshots * delta
+
+    # feature_begin = datetime(2009, 2, 1).timestamp()
+    # feature_end = datetime(2009, 7, 1).timestamp()
+    # observation_begin = datetime(2009, 7, 1).timestamp()
+    # observation_end = datetime(2010, 1, 1).timestamp()
 
     # first we need to parse the whole data set to capture all of the entities and assign indexes to them
     indexer = generate_indexer(usr_dataset, usr_bm_tg_dataset, feature_begin, feature_end)
@@ -224,19 +236,23 @@ def main():
 
     X, Y, T = extract_features(contact_sparse, save_sparse, attach_sparse, observed_samples, censored_samples)
     X_list = [X]
-    delta = timestamp_delta_generator(months=1)
+
     # print(delta)
     # print(observation_end - observation_begin)
 
-    for t in range(int(feature_end - delta), int(feature_begin-1), -int(delta)):
+    for t in range(int(feature_end - delta), int(feature_begin - 1), -int(delta)):
         print(datetime.fromtimestamp(t))
         contact_sparse, save_sparse, attach_sparse = parse_dataset(
             usr_dataset, usr_bm_tg_dataset, feature_begin, t, indexer)
         X, _, _ = extract_features(contact_sparse, save_sparse, attach_sparse, observed_samples, censored_samples)
         X_list.append(X)
 
-    pickle.dump({'X': X_list, 'Y': Y, 'T': T}, open('data/dataset.pkl', 'wb'))
+    # X = np.stack(X_list[::-1], axis=1)  # X.shape = (n_samples, timesteps, n_features)
+    # pickle.dump({'X': X_list[::-1], 'Y': Y, 'T': T}, open('data/dataset.pkl', 'wb'))
+    os.chdir(cur_path)
+    return X_list, Y, T
 
 
 if __name__ == '__main__':
-    main()
+    # main()
+    pass
