@@ -1,0 +1,214 @@
+\begin{table*}
+	%\renewcommand{\arraystretch}{2}
+	\centering
+	\caption{Characteristics of Some Probability Distributions Used for Event-Time Modeling}
+	\label{table:dists}
+	\begin{tabu} to \textwidth {X X[c] X[c] X[c] X[c]}
+		\toprule
+		Distribution & Density function & Reliability function & Intensity function & Cumulative intensity\\
+		& $f_T(t)$ & $S(t)$ & $\lambda(t)$ & $\Lambda(t)$\\[1pt]
+		\midrule % In-table horizontal line
+		Exponential & $\alpha\exp(-\alpha t)$ & $\exp(-\alpha t)$ & $\alpha$ & $\alpha t$\\[4pt]
+		%\midrule
+		Rayleigh & $\frac{t}{\sigma^2}\exp(-\frac{t^2}{2\sigma^2})$ & $\exp(-\frac{t^2}{2\sigma^2})$ & $\frac{t}{\sigma^2}$ & $\frac{t^2}{2\sigma^2}$\\[4pt]
+		%\midrule % In-table horizontal line
+		Gompertz & $\alpha e^t\exp\left\lbrace -\alpha(e^t-1) \right\rbrace$ & $\exp\left\lbrace -\alpha(e^t-1) \right\rbrace$ & $\alpha e^t$ & $\alpha e^t$\\[2pt]
+		%\midrule % In-table horizontal line
+		%Power-Law & $\frac{\alpha\beta^\alpha}{t^{\alpha+1}}$ & $\left(\frac{\beta}{t}\right)^\alpha$ & $\frac{\alpha}{t}$ & $\alpha\ln(t)$\\
+		\bottomrule % Bottom horizontal line
+	\end{tabu}
+\end{table*}
+
+\section{Proposed Non-Parametric Model}\label{sec:method}
+In this section we introduce our proposed model, called \emph{Non-Parametric Generalized Linear Model}, to solve the problem of continuous-time relationship prediction based on the extracted features. 
+Since the relationship building time is treated as a continuous random variable, we attempt to model the probability distribution of this time, given the features of the target relationship. Thus, if we denote the target relationship building time by $t$ and its features by $\mb{x}$, our aim is to model the probability distribution $f_T(t\mid \mb{x})$. A conventional approach to modeling this distribution is to fix a parametric distribution for $t$ (e.g. Exponential distribution) and then relate $\mb{x}$ to $t$ using a Generalized Linear Model \cite{sun2012will}. The major drawback of this approach is that we need to know the exact distribution of the relationship building time, or at least, we could guess the best one that fits. The alternative way that we follow is to learn the shape of $f_T(t\mid \mb{x})$ from the data using a non-parametric solution.
+
+In the rest of this section, we first bring the necessary theoretical backgrounds related to the concept, then we go through the details of the proposed model. At the end, we explain the learning and inference algorithms of \npglm.
+
+\subsection{Background}
+Here we define some essential concepts that are necessary to study before we proceed to the proposed model. Generally, the formation of a relationship between two nodes in the network can simply be considered as an event with its occurring time as a random variable $T$ coming from a density function $f_T(t)$. Regarding this, we can have the following definitions:
+
+\begin{definition}[Survival Function]
+	Given the density $f_T(t)$, the survival function denoted by $S(t)$, is the probability that an event occurs after a certain value of $t$, which means:
+	\begin{equation}
+	S(t) = P(T > t) = \int_t^\infty f_T(t)dt
+	\end{equation}
+\end{definition}
+
+\begin{definition}[Intensity Function]
+	The intensity function (or failure rate function), denoted by $\lambda(t)$, is the instantaneous rate of event occurring at any time $t$ given the fact that the event has not occurred yet:
+	\begin{equation}
+	\lambda(t)=\lim_{\Delta t\rightarrow 0}\frac{P(t\le T\le t+\Delta t\mid T\ge t)}{\Delta t}
+	\end{equation}
+\end{definition}
+
+\begin{definition}[Cumulative Intensity Function]
+	The cumulative intensity function, denoted by $\Lambda(t)$, is the area under the intensity function up to a point $t$:
+	\begin{equation}
+	\Lambda(t)=\int_0^t\lambda(t)dt
+	\end{equation}
+\end{definition}
+
+The relations between density, survival, and intensity functions come directly from their definitions as follows:
+
+\begin{equation}\label{eq:intensity}
+\lambda(t)=\frac{f_T(t)}{S(t)}
+\end{equation}
+\begin{equation}\label{eq:reliability}
+S(t)=\exp(-\Lambda(t)dt)
+\end{equation}
+\begin{equation}\label{eq:density}
+f_T(t)=\lambda(t)\exp(-\Lambda(t))
+\end{equation}
+
+Table \ref{table:dists} shows the density, reliability, intensity, and cumulative intensity functions of some widely-used distributions for event time modeling.
+
+\subsection{Model Description}
+Looking at the Eq.~\ref{eq:intensity}, we see that the density function can be specified uniquely with its intensity function. Since the intensity function often has a simpler form than the density itself, if we learn the shape of the intensity function, then we can infer the entire distribution eventually. Therefore, we focus on learning the shape of the conditional intensity function $\lambda(t\mid \mb{x})$ from the data, and then accordingly infer the conditional density function $f_T(t\mid \mb{x})$ based on the learned intensity.
+In order to reduce the hypothesis space of the problem and avoid the curse of dimensionality, we assume that $\lambda(t\mid \mb{x})$, which is a function of both $t$ and $\mb{x}$, can be factorized into two separate positive functions as the following:
+\begin{equation}\label{eq:lambda}
+\lambda(t\mid \mb{x})=g(\mb{w}^T\mb{x})h(t)
+\end{equation}
+where $g$ is a function of $\mb{x}$ which captures the effect of features via a linear transformation using coefficient vector $\mb{w}$ independent of $t$, and $h$ is a function of $t$ which captures the effect of time independent from $x$. This assumption, referred to as proportional hazards condition \cite{breslow1975analysis}, holds in GLM formulations of many event-time modeling distributions, such as the ones shown in Table~\ref{table:dists}. Our goal is now to fix the function $g$ and then learn both the coefficient vector $\mb{w}$ and the function $h$ from the training data. In order to do so, we begin with the likelihood function of the data which can be written as follows:
+
+\begin{equation}
+\prod_{i=1}^{N}f_T(t_i\mid \mb{x}_i)^{y_i}P(T\ge t_i\mid \mb{x}_i)^{1-y_i}\\
+\end{equation}
+The likelihood consists of the product of two parts: The first part is the contribution of those samples for which we have seen their exact building time, in terms of their density function. The second part on the other hand, is the contribution of the censored samples. For these samples, we use the probability of the building time being greater than the recorded one. Applying the Eq.~\ref{eq:intensity}, \ref{eq:reliability}, and \ref{eq:lambda}, the likelihood function becomes:
+\begin{equation}
+\prod_{i=1}^{N}\left[g(\mb{w}^T\mb{x}_i)h(t_i)\right]^{y_i}\exp\lbrace-g(\mb{w}^T\mb{x}_i)\int_{0}^{t_i}h(t)dt\rbrace
+\end{equation}
+
+Since we don't know the form of $h(t)$, we cannot directly calculate the integral appeared in the likelihood function. To deal with this problem, we treat $h(t)$ as a non-parametric function by approximating it with a piecewise constant function that changes just in $t_i$ s. Therefore, the integral over $h(t)$, denoted by $H(t)$, becomes a series:
+\begin{equation}\label{eq:cumh}
+H(t_i)=\int_{0}^{t_i}h(t)dt \simeq \sum_{j=1}^{i}h(t_j)(t_j-t_{j-1})
+\end{equation}
+assuming samples are sorted by $t$ in increasing order, without loss of generality. The function $H(t)$ defined above plays an important role in both learning and inference phases. In fact, both the learning and inference phases rely on $H(t)$ instead of $h(t)$, which we will see later in this paper.
+Replacing the above series in the likelihood and taking the logarithm, we end up with the following log-likelihood function:
+
+\begin{equation}\label{eq:logl}
+\begin{split}
+\log\mathcal{L}
+=\sum_{i=1}^{N}\Big\lbrace& y_i\left[\log g(\mb{w}^T\mb{x}_i) + \log h(t_i)\right]\\&-g(\mb{w}^T\mb{x}_i)\sum_{j=1}^{i}h(t_j)(t_j-t_{j-1})\Big\rbrace\\
+\end{split}
+\end{equation}
+
+The log-likelihood function depends on the vector $\mb{w}$ and the function $h(t)$. In the next part, we explain an iterative learning algorithm to learn both $\mb{w}$ and $h(t)$ collectively.
+
+\subsection{Learning Algorithm}
+Maximizing the log-likelihood function (Eq.~\ref{eq:logl}) rely on the choice of the function $g$. There are no particular limits on the choice of $g$ except that it must be a non-negative function. For example, both quadratic and exponential functions of $\mb{w}^T\mb{x}$ will do the trick. Here, we proceed with $g(\mb{w}^T\mb{x})=\exp(\mb{w}^T\mb{x})$ since it makes the log-likelihood a convex function with respect to $\mb{w}$. Subsequent equations can be derived for other choices of $g$ analogously.
+
+Setting the log-likelihood derivative with respect to $h(t_k)$ to zero yields a closed form solution for $h(t_k)$:
+\begin{equation}\label{eq:h}
+h(t_k)=\frac{y_k}{(t_k-t_{k-1})\sum_{i=k}^{N}\exp(\mb{w}^T\mb{x}_i)}
+\end{equation}
+
+Applying Eq.~\ref{eq:cumh}, we get the following for $H(t_i)$:
+\begin{equation}\label{eq:H}
+H(t_i)=\sum_{j=1}^{i}\frac{y_j}{\sum_{k=j}^{N}\exp(\mb{w}^T\mb{x}_k)}
+\end{equation}
+which depends on the vector $\mb{w}$. On the other hand, we cannot obtain a closed form solution for $\mb{w}$ from the log-likelihood function. Therefore, we turn to use Gradient-based optimization methods to find the optimal value of $\mb{w}$. The negative log-likelihood function with respect to $\mb{w}$, denoted by $NL(\mb{w})$ is as follows:
+
+\begin{equation}\label{eq:nlw}
+NL(\mb{w})=\sum_{i=1}^{N}\left\lbrace\exp(\mb{w}^T\mb{x}_i)H(t_i)-y_i\mb{w}^T\mb{x}_i\right\rbrace
+\end{equation}
+which depends on the function $H$. As the learning of both $\mb{w}$ and $H$ depends on each other, they should be learned collectively. Here, we use an iterative algorithm to learn $\mb{w}$ and $H$ alternatively. We begin with a random vector $\mb{w}^{(0)}$. Then in each iteration $\tau$, we first update $H^{(\tau)}$ via Eq.~\ref{eq:H} using $w^{(\tau-1)}$. Next, we optimize Eq.~\ref{eq:nlw} using the values of $H^{(\tau)}(t_i)$ to obtain $\mb{w}^{(\tau)}$. We continue this routine until convergence. The pseudo code of the learning procedure is available in Algorithm~\ref{alg:learning}.
+
+\begin{algorithm}[t]
+	\small
+	\SetAlgoLined
+	\KwIn{$\mb{X}_{N\times d}=(\mb{x}_1,\dots\mb{x}_N)^T$ as $d$-dimensional feature vectors, $\mb{y}_{N\times1}$ as observation states, and $\mb{t}_{N\times1}$ as recorded times.}
+	\KwOut{Learned parameters $\mb{w}_{d\times1}$ and $\mb{H}_{N\times1}$.}
+	$converged\leftarrow False$\;
+	$threshold\leftarrow10^{-4}$\;
+	$\tau\leftarrow 0$\;
+	$\log\mathcal{L}^{(\tau)}=-\infty$\;
+	Initialize $\mb{w}^{(\tau)}$ with random values\;
+	\While{Not $converged$}{
+		$\tau\leftarrow\tau+1$\;
+		Use Eq.~\ref{eq:H} to obtain $\mb{H}^{(\tau)}$ using $\mb{w}^{(\tau-1)}$\;
+		Optimize Eq.~\ref{eq:nlw} to obtain $\mb{w}^{(\tau)}$ using $\mb{H}^{(\tau)}$\;
+		Use Eq.~\ref{eq:logl} to obtain $\log\mathcal{L}^{(\tau)}$ using $\mb{w}^{(\tau)}$ and $\mb{H}^{(\tau)}$\;
+		
+		\If{$\left\|\log\mathcal{L}^{(\tau)} - \log\mathcal{L}^{(\tau-1)}\right\| < threshold$}{
+			$converged\leftarrow True$\;
+		}
+	}
+	$\mb{w}\leftarrow \mb{w}^{(\tau)}$\;
+	$\mb{H}\leftarrow \mb{H}^{(\tau)}$\;
+	\caption{The learning algorithm of \npglm}
+	\label{alg:learning}
+\end{algorithm}
+
+
+%\subsection{Convergence Analysis}
+%To analyze the convergence of likelihood maximization, we look at the likelihood function close to the extreme point (which we denote with $w_e$). For the extreme point $\frac{\partial \log \mathcal{L}}{\partial w}$ vanishes so we have: 
+%\begin{equation}\label{eq:ext}
+%\sum_{i=1}^{i=N} y_ix_i=\sum_{i=1}^{i=N} exp(w_e^Tx_i)H(t_i)x_i
+%\end{equation}
+%Looking into the second derivative we have:
+%\begin{equation}\label{eq:dif2}
+%-\frac{\partial^2 \log \mathcal {L}}{\partial w^2}=\sum_{i=1}^{i=N} exp(w^Tx_i)H(t_i)x_ix_i^T
+%\end{equation}
+%So for points near the extreme point putting $w=w_e+\delta w$ (where $\delta w$ is small), neglecting the higher order terms with respect to $\delta w$ we have:
+%\begin{equation}
+%\log \mathcal{L}(\delta w)=\log \mathcal{L}(w_e)-\frac{1}{2}\delta w^TM\delta w + O(\delta w^3)
+%\end{equation}
+%Which is of a quadratic form with respect to $\delta w$ and $M$ is the second derivative (Equation \ref{eq:dif2}) measured at $w_e$. $M$ measures the curvature of $\log \mathcal{L}$ hyper-surface near the extreme point and it's spectral radius gives us a measure of how fast our maximization procedure converges to $w_e$. 
+%Without going through the maximization process we can establish a bound on $M$ (and thus convergence) by noting that amongst the $x_i$ we can find one (denoting it with $x_s$) such that:
+%\begin{equation}
+%M>=(\sum_{i=1}^{i=N} exp(w_e^Tx_i)H(t_i)x_i) x_s^T
+%\end{equation}
+%Comparing with (Equation \ref{eq:ext}) we can write the RHS as:
+%\begin{equation}
+%M_e=(\sum_{i=1}^{i=N} y_ix_i) x_s^T
+%\end{equation}
+%So our likelihood function converges to the extremum at a rate faster than a quadratic form with $M_e$.
+
+
+\subsection{Inference Queries}
+In this part, we explain how to answer the common inference queries based on the inferred distribution $f_T(t\mid \mb{x})$. Suppose that we have learned the vector ${\mb{w}}$ and the function ${H}$ using the training samples $(\mb{x}_i, y_i, t_i), i=1\dots N$ following Algorithm~\ref{alg:learning}. Afterwards, for a testing relationship $R$ associated with a feature vector $\mb{x}_R$, the following queries can be answered:\\
+
+
+\descr{Ranged Probability.} What is the probability for the relationship $R$ to be formed between time $t_\alpha$ and $t_\beta$? This is equivalent to calculating $P(t_\alpha \le T \le t_\beta \mid \mb{x}_R)$, which by definition is:
+\begin{equation}\label{eq:ranged}
+\begin{split}
+P(t_\alpha\le T \le t_\beta \mid \mb{x}_R) = S(t_\alpha\mid \mb{x}_R) - S(t_\beta\mid \mb{x}_R)\\
+= \exp\{-g(\mb{w}^T\mb{x}_R){H}(t_\alpha)\} - \exp\{-g(\mb{w}^T\mb{x}_R){H}(t_\beta)\}
+\end{split}
+\end{equation}
+The problem here is to obtain the values of ${H}(t_\alpha)$ and ${H}(t_\beta)$, as $t_\alpha$ and $t_\beta$ may not be among $t_i$s of the training samples, for which ${H}$ is estimated. To calculate ${H}(t_\alpha)$, we find $k\in\{1,2,\dots,N\}$ such that $t_k\le t_\alpha < t_{k+1}$.
+Due to the piecewise constant assumption for the function $h$, we get:
+\begin{equation}\label{eq:inf1}
+{h}(t_\alpha)=\frac{{H}(t_\alpha)-{H}(t_k)}{t_\alpha-t_k}
+\end{equation} 
+On the other hand, since $h$ only changes in $t_i$s, we have:
+\begin{equation}\label{eq:inf2}
+{h}(t_\alpha)={h}(t_{k+1})=\frac{{H}(t_{k+1})-{H}(t_k)}{t_{k+1}-t_k}
+\end{equation}
+Combining Eq.~\ref{eq:inf1} and \ref{eq:inf2}, we get:
+\begin{equation}\label{eq:inf3}
+{H}(t_\alpha)={H}(t_k)+(t_\alpha-t_k)\frac{{H}(t_{k+1})-{H}(t_k)}{t_{k+1}-t_k}
+\end{equation}
+Following the similar approach, we can calculate ${H}(t_\beta)$, and then answer the query using Eq.~\ref{eq:ranged}. The dominating operation here is to find the value of $k$. Since we have $t_i$s sorted beforehand, this operation can be done using a binary search with $O(\log N)$ time complexity.\\
+
+\descr{Quantile.} By how long the target relationship $R$ will be formed with probability $\alpha$? This question is equivalent to find the time $t_\alpha$ such that $P(T \le t_\alpha\mid x_R)=\alpha$. By definition, we have:
+\begin{equation*}
+\begin{split}
+1-P(T \le t_\alpha\mid \mb{x}_R)=S(t_\alpha\mid \mb{x}_R)&=\exp\{-g(\mb{w}^T\mb{x}_R){H}(t_\alpha)\}=1-\alpha
+\end{split}
+\end{equation*}
+Taking logarithm of both sides and rearranging, we get:
+\begin{equation}\label{eq:inf4}
+{H}(t_\alpha)=-\frac{\log(1-\alpha)}{g(\mb{w}^T\mb{x}_R)}
+\end{equation}
+To find $t_\alpha$, we first find $k$ such that ${H}(t_k)\le{H}(t_\alpha)<{H}(t_{k+1})$.
+We eventually have $t_k\le t_\alpha < t_{k+1}$ since $H$ is a non-decreasing function due to non-negativity of the function $h$. Therefore, we again end up with Eq.~\ref{eq:inf3}, which by rearranging we get:
+\begin{equation}\label{eq:inf5}
+t_\alpha=(t_{k+1}-t_k)\frac{{H}(t_\alpha)-{H}(t_k)}{{H}(t_{k+1})-{H}(t_k)}+t_k
+\end{equation}
+By combining the Eq.~\ref{eq:inf4} and \ref{eq:inf5}, we can obtain the value of $t_\alpha$ which is the answer to the quantile query. It worth mentioning that if $\alpha=0.5$ then $t_\alpha$ becomes the median of the distribution $f_T(t\mid \mb{x}_R)$. Here again the dominant operation is to find the value of $k$, which due to the non-decreasing property of the function ${H}$ can be found using a binary search with $O(\log N)$ time complexity.\\
+
+%\descr{Random Sampling.}
+%Generating random samples from the inferred distribution can easily be carried out using the Inverse-Transform sampling algorithm. To pick a random sample from the inferred distribution $f_T(t\mid x)$, we first generate uniform random variable $u\sim Uniform(0,1)$. Then, we find $k$ such that $S(t_{k+1}\mid x)\leq u\le S(t_k\mid x)$. We output $t_{k+1}$ as the generated sample. Again, searching for the suitable value of $k$ is the dominant operation which can be undertaken via binary search with $O(\log N)$ time complexity.
+
