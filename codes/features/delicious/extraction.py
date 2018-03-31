@@ -89,7 +89,7 @@ def sample_generator(usr_dataset, observation_begin, observation_end, contact_sp
             u = indexer.get_index('user', line_items[0])
             v = indexer.get_index('user', line_items[1])
             if not (u is None or v is None):
-                observed_samples[u, v] = contact_timestamp
+                observed_samples[u, v] = contact_timestamp - observation_begin
 
     # logging.info('Observed samples found.')
 
@@ -107,7 +107,7 @@ def sample_generator(usr_dataset, observation_begin, observation_end, contact_sp
             u = user_list[i]
             v = user_list[j]
             if (u, v) not in set_observed:
-                censored_samples[u, v] = observation_end + 1
+                censored_samples[u, v] = observation_end - observation_begin + 1
 
     print(len(observed_samples) + len(censored_samples))
 
@@ -249,6 +249,7 @@ def run(delta, observation_window, n_snapshots):
 
     # X = np.stack(X_list[::-1], axis=1)  # X.shape = (n_samples, timesteps, n_features)
     # pickle.dump({'X': X_list[::-1], 'Y': Y, 'T': T}, open('data/dataset.pkl', 'wb'))
+    logging.info('done.')
     os.chdir(cur_path)
     return X_list, Y, T
 

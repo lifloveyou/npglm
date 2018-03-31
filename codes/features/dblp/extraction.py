@@ -1,37 +1,42 @@
 import Stemmer
 import random
 import pickle
+import bisect
 import logging
+import threading
 import numpy as np
 from scipy import sparse
 from nltk.corpus import stopwords as stop_words
+from codes.features.utils import Indexer, create_sparse
 
-logging.basicConfig(level=logging.INFO, format='%(asctime)s: %(message)s', datefmt='%H:%M:%S')
+path = 'th'
+censoring_ratio = 0.5  # fraction of censored samples to all samples
+paper_threshold = 5
 
-indices = {'author': 0, 'venue': 0, 'term': 0, 'paper': 0}
-mapping = {'author': {}, 'venue': {}, 'term': {}, 'paper': {}}
 stopwords = stop_words.words('english')
 stem = Stemmer.Stemmer('english')
 
-path = 'test'
 
+class Paper:
+    def __init__(self, year):
+        self.id = None
+        self.authors = []
+        self.year = year
+        self.venue = None
+        self.references = []
+        self.terms = []
 
-def get_index(category, query):
-    global indices, mapping
-    if query in mapping[category]:
-        return mapping[category][query]
-    else:
-        mapping[category][query] = indices[category]
-        indices[category] += 1
-        return indices[category] - 1
+    def __lt__(self, other):
+        return self.year < other.year
 
+    def __le__(self, other):
+        return self.year <= other.year
 
-def create_sparse(coo_list, m, n):
-    data = np.ones((len(coo_list),))
-    row = [pair[0] for pair in coo_list]
-    col = [pair[1] for pair in coo_list]
-    matrix = sparse.coo_matrix((data, (row, col)), shape=(m, n))
-    return matrix
+    def __gt__(self, other):
+        return self.year > other.year
+
+    def __ge__(self, other):
+        return self.year >= other.year
 
 
 def parse_term(title):
@@ -44,53 +49,62 @@ def parse_term(title):
     return token
 
 
-def parse_dataset(filename, feature_begin, feature_end, conf_list):
-    write = []
-    cite = []
-    include = []
-    published = []
+def generate_papers(datafile, feature_begin, feature_end, observation_begin, observation_end, conf_list):
+    logging.info('generating papers ...')
 
-    with open(filename) as file:
-        dataset = file.read().splitlines()
+    # try:
+    #     result = pickle.load(open('data/papers_%s.pkl' % path, 'rb'))
+    #     return result
+    # except IOError:
+    #     pass
 
-    index = None
-    authors = None
-    title = None
-    year = None
-    venue = None
+    indexer = Indexer(['author', 'paper', 'term', 'venue'])
+
+    index, authors, title, year, venue = None, None, None, None, None
     references = []
 
-    # min_year = 3000
-    # max_year = 0
+    write = 0
+    cite = 0
+    include = 0
+    published = 0
+
+    min_year = 3000
+    max_year = 0
+
+    papers_feature_window = []
+    papers_observation_window = []
+
+    with open(datafile) as file:
+        dataset = file.read().splitlines()
 
     for line in dataset:
-        # line = line[:-1]
         if not line:
             if year and venue:
                 year = int(year)
-                if feature_begin <= year <= feature_end and authors and (venue in conf_list or not conf_list):
-                    # min_year = min(year, min_year)
-                    # max_year = max(year, max_year)
-                    terms = [get_index('term', term) for term in parse_term(title)]
-                    references = [get_index('paper', paper_id) for paper_id in references]
-                    author_list = authors.split(',')
-                    authors = [get_index('author', author_name) for author_name in author_list]
-                    venue_id = get_index('venue', venue)
-                    paper_index = get_index('paper', index)
+                if year > 0 and authors and venue in conf_list:
+                    min_year = min(min_year, year)
+                    max_year = max(max_year, year)
+                    authors = authors.split(',')
+                    terms = parse_term(title)
+                    write += len(authors)
+                    cite += len(references)
+                    include += len(terms)
+                    published += 1
 
-                    for author_id in authors:
-                        write.append((author_id, paper_index))
-                    for paper_id in references:
-                        cite.append((paper_id, paper_index))
-                    for term_id in terms:
-                        include.append((paper_index, term_id))
-                    published.append((paper_index, venue_id))
+                    p = Paper(year)
+                    if feature_begin < year <= feature_end:
+                        p.id = indexer.index('paper', index)
+                        p.terms = [indexer.index('term', term) for term in terms]
+                        p.references = [indexer.index('paper', paper_id) for paper_id in references]
+                        p.authors = [indexer.index('author', author_name) for author_name in authors]
+                        p.venue = indexer.index('venue', venue)
+                        bisect.insort(papers_feature_window, p)
+                    elif observation_begin < year <= observation_end:
+                        p.references = references
+                        p.authors = authors
+                        papers_observation_window.append(p)
 
-            index = None
-            authors = None
-            title = None
-            year = None
-            venue = None
+            index, authors, title, year, venue = None, None, None, None, None
             references = []
         else:
             begin = line[1]
@@ -107,88 +121,200 @@ def parse_dataset(filename, feature_begin, feature_end, conf_list):
             elif begin == '%':
                 references.append(line[2:])
 
-    num_authors = indices['author']
-    num_papers = indices['paper']
-    num_venues = indices['venue']
-    num_terms = indices['term']
+    for p in papers_observation_window:
+        authors = []
+        references = []
+        for author in p.authors:
+            author_id = indexer.get_index('author', author)
+            if author_id is not None:
+                authors.append(author_id)
+        for ref in p.references:
+            paper_id = indexer.get_index('paper', ref)
+            if paper_id is not None:
+                references.append(paper_id)
+        p.authors = authors
+        p.references = references
+
+    with open('data/metadata_%s.txt' % path, 'w') as output:
+        output.write('Nodes:\n')
+        output.write('-----------------------------\n')
+        output.write('#Authors: %d\n' % indexer.indices['author'])
+        output.write('#Papers: %d\n' % indexer.indices['paper'])
+        output.write('#Venues: %d\n' % indexer.indices['venue'])
+        output.write('#Terms: %d\n\n' % indexer.indices['term'])
+        output.write('\nEdges:\n')
+        output.write('-----------------------------\n')
+        output.write('#Write: %d\n' % write)
+        output.write('#Cite: %d\n' % cite)
+        output.write('#Publish: %d\n' % published)
+        output.write('#Contain: %d\n' % include)
+        output.write('\nTime Span:\n')
+        output.write('-----------------------------\n')
+        output.write('From: %s\n' % min_year)
+        output.write('To: %s\n' % max_year)
+
+    result = papers_feature_window, papers_observation_window, indexer.indices
+    pickle.dump(result, open('data/papers_%s.pkl' % path, 'wb'))
+    return result
+
+
+def parse_dataset(papers_feature_window, feature_begin, feature_end, counter):
+    logging.info('parsing dataset ...')
+    write = []
+    cite = []
+    include = []
+    published = []
+
+    left_gt = Paper(feature_begin)
+    right_le = Paper(feature_end)
+    left_index = bisect.bisect_right(papers_feature_window, left_gt)
+    right_index = bisect.bisect_right(papers_feature_window, right_le)
+
+    for p in papers_feature_window[left_index:right_index]:
+        for author_id in p.authors:
+            write.append((author_id, p.id))
+        for paper_id in p.references:
+            cite.append((paper_id, p.id))
+        for term_id in p.terms:
+            include.append((p.id, term_id))
+        published.append((p.id, p.venue))
+
+    num_authors = counter['author']
+    num_papers = counter['paper']
+    num_venues = counter['venue']
+    num_terms = counter['term']
 
     W = create_sparse(write, num_authors, num_papers)
     C = create_sparse(cite, num_papers, num_papers)
     I = create_sparse(include, num_papers, num_terms)
     P = create_sparse(published, num_papers, num_venues)
 
-    logging.info('Saving...')
-    pickle.dump(W, open('temp/write_matrix.pkl', 'wb'))
-    pickle.dump(C, open('temp/cite_matrix.pkl', 'wb'))
-    pickle.dump(I, open('temp/include_matrix.pkl', 'wb'))
-    pickle.dump(P, open('temp/published_matrix.pkl', 'wb'))
-    # pickle.dump(indices, open('temp/indices.pkl', 'wb'))
-    pickle.dump(mapping, open('temp/mapping.pkl', 'wb'))
-    # pickle.dump(APPA, open('APPA.pkl', 'wb'))
-    # pickle.dump(APPPA_in, open('APPPA_in.pkl', 'wb'))
-    # pickle.dump(APPPA_out, open('APPPA_out.pkl', 'wb'))
-    # pickle.dump(APVPA, open('APVPA.pkl', 'wb'))
-    # pickle.dump(APTPA, open('APTPA.pkl', 'wb'))
-
-    with open('%s/metadata_%d_%d.txt' % (path, feature_begin, feature_end), 'w') as output:
-        output.write('#Authors: %d\n' % num_authors)
-        output.write('#Papers: %d\n' % num_papers)
-        output.write('#Venues: %d\n' % num_venues)
-        output.write('#Terms: %d\n\n' % num_terms)
-
-        output.write('#Write: %d\n' % len(write))
-        output.write('#Cite: %d\n' % len(cite))
-        output.write('#Publish: %d\n' % len(published))
-        output.write('#Contain: %d\n' % len(include))
-
-        # output.write('First Year: %d\n' % min_year)
-        # output.write('Last Year: %d\n' % max_year)
+    return W, C, I, P
 
 
-def extract_features(f_beg, f_end, o_beg, o_end):
-    logging.info('Loading...')
-    W = pickle.load(open('temp/write_matrix.pkl', 'rb'))
-    C = pickle.load(open('temp/cite_matrix.pkl', 'rb'))
-    P = pickle.load(open('temp/include_matrix.pkl', 'rb'))
-    I = pickle.load(open('temp/published_matrix.pkl', 'rb'))
-    observed_samples = pickle.load(open('temp/observed_samples.pkl', 'rb'))
-    censored_samples = pickle.load(open('temp/censored_samples.pkl', 'rb'))
+def extract_features(W, C, P, I, observed_samples, censored_samples):
+    logging.info('extracting ...')
+    MP = [None for _ in range(24)]
+    events = [threading.Event() for _ in range(24)]
 
-    logging.info('A-P-P-A')
-    WC = W @ C
-    APPA = WC @ W.T
+    def worker(i):
+        if i == 0:
+            logging.debug('0: A-P-A')
+            MP[i] = W @ W.T
+        elif i == 1:
+            events[0].wait()
+            logging.debug('1: A-P-A-P-A')
+            MP[i] = MP[0] @ MP[0].T
+        elif i == 2:
+            events[19].wait()
+            logging.debug('2: A-P-V-P-A')
+            MP[i] = MP[19] @ MP[19].T
+        elif i == 3:
+            events[20].wait()
+            logging.debug('3: A-P-T-P-A')
+            MP[i] = MP[20] @ MP[20].T
+        elif i == 4:
+            events[21].wait()
+            logging.debug('4: A-P->P<-P-A')
+            MP[i] = MP[21] @ MP[21].T
+        elif i == 5:
+            events[22].wait()
+            logging.debug('5: A-P<-P->P-A')
+            MP[i] = MP[22] @ MP[22].T
+        elif i == 6:
+            events[21].wait()
+            events[22].wait()
+            logging.debug('6: A-P->P->P-A')
+            MP[i] = MP[21] @ MP[22].T
+        elif i == 7:
+            events[0].wait()
+            events[23].wait()
+            logging.debug('7: A-P-P-A-P-A')
+            MP[i] = MP[23] @ MP[0]
+        elif i == 8:
+            events[1].wait()
+            events[23].wait()
+            logging.debug('8: A-P-P-A-P-A-P-A')
+            MP[i] = MP[23] @ MP[1]
+        elif i == 9:
+            events[2].wait()
+            events[23].wait()
+            logging.debug('9: A-P-P-A-P-V-P-A')
+            MP[i] = MP[23] @ MP[2]
+        elif i == 10:
+            events[3].wait()
+            events[23].wait()
+            logging.debug('10: A-P-P-A-P-T-P-A')
+            MP[i] = MP[23] @ MP[3]
+        elif i == 11:
+            events[4].wait()
+            events[23].wait()
+            logging.debug('11: A-P-P-A-P->P<-P-A')
+            MP[i] = MP[23] @ MP[4]
+        elif i == 12:
+            events[5].wait()
+            events[23].wait()
+            logging.debug('12: A-P-P-A-P<-P->P-A')
+            MP[i] = MP[23] @ MP[5]
+        elif i == 13:
+            events[0].wait()
+            events[23].wait()
+            logging.debug('13: A-P-A-P-P-A')
+            MP[i] = MP[0] @ MP[23]
+        elif i == 14:
+            events[1].wait()
+            events[23].wait()
+            logging.debug('14: A-P-A-P-A-P-P-A')
+            MP[i] = MP[1] @ MP[23]
+        elif i == 15:
+            events[2].wait()
+            events[23].wait()
+            logging.debug('15: A-P-V-P-A-P-P-A')
+            MP[i] = MP[2] @ MP[23]
+        elif i == 16:
+            events[3].wait()
+            events[23].wait()
+            logging.debug('16: A-P-T-P-A-P-P-A')
+            MP[i] = MP[3] @ MP[23]
+        elif i == 17:
+            events[4].wait()
+            events[23].wait()
+            logging.debug('17: A-P->P<-P-A-P-P-A')
+            MP[i] = MP[4] @ MP[23]
+        elif i == 18:
+            events[5].wait()
+            events[23].wait()
+            logging.debug('18: A-P<-P->P-A-P-P-A')
+            MP[i] = MP[5] @ MP[23]
+        elif i == 19:
+            logging.debug('A-P-V')
+            MP[i] = W @ P
+        elif i == 20:
+            logging.debug('A-P-T')
+            MP[i] = W @ I
+        elif i == 21:
+            logging.debug('A-P->P')
+            MP[i] = W @ C
+        elif i == 22:
+            logging.debug('A-P<-P')
+            MP[i] = W @ C.T
+        elif i == 23:
+            events[21].wait()
+            logging.debug('A-P-P-A')
+            MP[23] = MP[21] @ W.T
 
-    logging.info('A-P->P<-P-A')
-    APPPA_in = WC @ WC.T
+        events[i].set()
 
-    logging.info('A-P<-P->P-A')
-    WCT = W @ C.T
-    APPPA_out = WCT @ WCT.T
+    threads = [threading.Thread(target=worker, args=(i,)) for i in range(24)]
 
-    logging.info('A-P-V-P-A')
-    WP = W @ P
-    APVPA = WP @ WP.T
+    for t in threads:
+        t.start()
 
-    logging.info('A-P-T-P-A')
-    WI = W @ I
-    APTPA = WI @ WI.T
+    for t in threads:
+        t.join()
 
-    logging.info('A-P-A-P-A')
-    WW = W @ W.T
-    APAPA = WW @ WW.T
-
-    logging.info('Extracting...')
-
-    def get_features(u, v):
-        fv = [0, 0, 0, 0, 0, 0, 0]
-        fv[0] = APPA[u, v]
-        fv[1] = APPA[v, u]
-        fv[2] = APPPA_in[u, v]
-        fv[3] = APPPA_out[u, v]
-        fv[4] = APVPA[u, v]
-        fv[5] = APTPA[u, v]
-        fv[6] = APAPA[u, v]
-        return fv
+    def get_features(p, q):
+        return [MP[i][p, q] for i in range(19)]
 
     X = []
     Y = []
@@ -208,123 +334,102 @@ def extract_features(f_beg, f_end, o_beg, o_end):
         Y.append(False)
         T.append(t)
 
-    pickle.dump({'X': np.array(X), 'Y': np.array(Y), 'T': np.array(T)},
-                open('%s/dataset_%d_%d_%d_%d.pkl' % (path, f_beg, f_end, o_beg, o_end), 'wb')
-                )
+    return np.array(X), np.array(Y), np.array(T)
 
 
-def generate_samples(filename, observation_begin, observation_end, conf_list):
-    """
-    :param filename: dataset file name
-    :param observation_begin: beginning of the observation window
-    :param observation_end: ending of the observation window
-    :param conf_list: list of venue names to include
-    """
+def generate_samples(papers_observation_window, W, C):
+    logging.info('generating samples ...')
+    written_by = {}
+    elements = sparse.find(W)
+    for i in range(len(elements[0])):
+        author = elements[0][i]
+        paper = elements[1][i]
+        if paper in written_by:
+            written_by[paper].append(author)
+        else:
+            written_by[paper] = [author]
 
-    W = pickle.load(open('temp/write_matrix.pkl', 'rb'))
-    # indices = pickle.load(open('indices.pkl', 'rb'))
-    mapping = pickle.load(open('temp/mapping.pkl', 'rb'))
-
-    coauthor = W @ W.T
+    APPA = W @ C @ W.T
+    num_papers = (W @ W.T).diagonal()
     observed_samples = {}
 
-    with open(filename) as file:
-        dataset = file.read().splitlines()
+    for p in papers_observation_window:
+        for u in p.authors:
+            if num_papers[u] >= paper_threshold:
+                for paper_id in p.references:
+                    if paper_id in written_by:
+                        for v in written_by[paper_id]:
+                            if num_papers[v] >= paper_threshold and not APPA[u, v]:
+                                if (u, v) in observed_samples:
+                                    observed_samples[u, v] = min(p.year, observed_samples[u, v])
+                                else:
+                                    observed_samples[u, v] = p.year
 
-    authors = None
-    year = None
-    venue = None
-
-    paper_threshold = 0
-
-    for line in dataset:
-        # line = line[:-1]
-        if not line:
-            if year and venue:
-                year = int(year)
-                if observation_begin <= year <= observation_end and authors and (venue in conf_list or not conf_list):
-                    author_list = authors.split(',')
-                    # authors = [get_index('author', author_name) for author_name in author_list]
-                    for i in range(len(author_list)):
-                        if author_list[i] in mapping['author']:
-                            u = mapping['author'][author_list[i]]
-                            n_u = coauthor[u, u]
-                            if n_u >= paper_threshold:
-                                for j in range(i + 1, len(author_list)):
-                                    if author_list[j] in mapping['author']:
-                                        v = mapping['author'][author_list[j]]
-                                        n_v = coauthor[v, v]
-                                        if n_v >= paper_threshold and not coauthor[u, v]:
-                                            if (u, v) in observed_samples:
-                                                observed_samples[u, v] = min(year, observed_samples[u, v])
-                                            else:
-                                                observed_samples[u, v] = year
-
-            authors = None
-            year = None
-            venue = None
-        else:
-            begin = line[1]
-            if begin == '@':
-                authors = line[2:]
-            elif begin == 't':
-                year = line[2:]
-            elif begin == 'c':
-                venue = line[2:]
-
-    logging.info('Observed samples found.')
-    nonzero = sparse.find(coauthor)
+    # logging.info('Observed samples found.')
+    nonzero = sparse.find(APPA)
     set_observed = set([(u, v) for (u, v) in observed_samples] + [(u, v) for (u, v) in zip(nonzero[0], nonzero[1])])
     censored_samples = {}
-    N = coauthor.shape[0]
-    M = len(observed_samples) // 5
-    author_list = [i for i in range(N) if coauthor[i, i] >= paper_threshold]
+    N = APPA.shape[0]
+    M = len(observed_samples) // ((1 / censoring_ratio) - 1)
+    author_list = [i for i in range(N) if num_papers[i] >= paper_threshold]
 
     while len(censored_samples) < M:
         i = random.randint(0, len(author_list) - 1)
-        u = author_list[i]
-        # n_u = coauthor[u,u]
-        # if n_u >= paper_threshold:
-        try:
-            j = random.randint(i + 1, len(author_list) - 1)
+        j = random.randint(0, len(author_list) - 1)
+        if i != j:
+            u = author_list[i]
             v = author_list[j]
-            # n_v = coauthor[v,v]
             if (u, v) not in set_observed:
-                censored_samples[u, v] = observation_end + 1
-        except ValueError:
-            pass
-
-    pickle.dump(observed_samples, open('temp/observed_samples.pkl', 'wb'))
-    pickle.dump(censored_samples, open('temp/censored_samples.pkl', 'wb'))
+                censored_samples[u, v] = papers_observation_window[-1].year + 1
 
     print(len(observed_samples) + len(censored_samples))
+    return observed_samples, censored_samples
 
 
 def main():
-    conf_list = [
-        'KDD', 'PKDD', 'ICDM', 'SDM', 'PAKDD', 'SIGMOD', 'VLDB', 'ICDE', 'PODS', 'EDBT', 'SIGIR', 'ECIR',
-                 'ACL', 'WWW', 'CIKM', 'NIPS', 'ICML', 'ECML', 'AAAI', 'IJCAI',
+    logging.basicConfig(level=logging.INFO, format='%(asctime)s: %(message)s', datefmt='%H:%M:%S')
 
-        # 'STOC', 'FOCS', 'COLT', 'LICS', 'SCG', 'SODA', 'SPAA', 'PODC', 'ISSAC', 'CRYPTO', 'EUROCRYPT', 'CONCUR',
-        # 'ICALP',
-        # 'STACS', 'COCO', 'WADS', 'MFCS', 'SWAT', 'ESA', 'IPCO', 'LFCS', 'ALT', 'EUROCOLT', 'WDAG', 'ISTCS', 'ISAAC',
-        # 'FSTTCS', 'LATIN', 'RECOMB', 'CADE', 'ISIT', 'MEGA', 'ASIAN', 'CCCG', 'FCT', 'WG', 'CIAC', 'ICCI', 'CATS',
-        # 'COCOON', 'GD',
-        # 'SIROCCO', 'WEA', 'ALENEX', 'FTP', 'CSL', 'DMTCS'
-    ]
+    conf_list = {
+        'db': [
+            'KDD', 'PKDD', 'ICDM', 'SDM', 'PAKDD', 'SIGMOD', 'VLDB', 'ICDE', 'PODS', 'EDBT', 'SIGIR', 'ECIR',
+            'ACL', 'WWW', 'CIKM', 'NIPS', 'ICML', 'ECML', 'AAAI', 'IJCAI',
+        ],
+        'th': [
+            'STOC', 'FOCS', 'COLT', 'LICS', 'SCG', 'SODA', 'SPAA', 'PODC', 'ISSAC', 'CRYPTO', 'EUROCRYPT', 'CONCUR',
+            'ICALP', 'STACS', 'COCO', 'WADS', 'MFCS', 'SWAT', 'ESA', 'IPCO', 'LFCS', 'ALT', 'EUROCOLT', 'WDAG', 'ISTCS',
+            'FSTTCS', 'LATIN', 'RECOMB', 'CADE', 'ISIT', 'MEGA', 'ASIAN', 'CCCG', 'FCT', 'WG', 'CIAC', 'ICCI', 'CATS',
+            'COCOON', 'GD', 'ISAAC', 'SIROCCO', 'WEA', 'ALENEX', 'FTP', 'CSL', 'DMTCS'
+        ]
+    }[path]
 
-    feature_begin = 1980
-    feature_end = 2008
-    observation_begin = 2009
+    delta = 1
+    ow = 3
+    n_snaps = 5
+
     observation_end = 2016
-    parse_dataset('data/dblp.txt', feature_begin, feature_end, conf_list)
-    generate_samples('data/dblp.txt', observation_begin, observation_end, conf_list)
-    extract_features(feature_begin, feature_end, observation_begin, observation_end)
+    observation_begin = observation_end - ow
+    feature_end = observation_begin
+    feature_begin = feature_end - delta*n_snaps
 
-    for t in range(feature_end - 1, feature_begin, -10):
-        print('===========================')
-        parse_dataset('data/dblp.txt', feature_begin, t, conf_list)
-        extract_features(feature_begin, t, observation_begin, observation_end)
+    papers_feat_window, papers_obs_window, counter = generate_papers('data/dblp.txt', feature_begin, feature_end,
+                                                                     observation_begin, observation_end,
+                                                                     conf_list)
+    W, C, I, P = parse_dataset(papers_feat_window, feature_begin, feature_end, counter)
+    observed_samples, censored_samples = generate_samples(papers_obs_window, W, C)
+
+    X, Y, T = extract_features(W, C, P, I, observed_samples, censored_samples)
+    T -= observation_begin
+    X_list = [X]
+    delta = 1
+
+    for t in range(feature_end - delta, feature_begin - 1, -delta):
+        print('=============%d=============' % t)
+        W, C, I, P = parse_dataset(papers_feat_window, feature_begin, t, counter)
+        X, _, _ = extract_features(W, C, P, I, observed_samples, censored_samples)
+        X_list.append(X)
+
+    # X = np.stack(X_list[::-1], axis=1)  # X.shape = (n_samples, timesteps, n_features)
+    pickle.dump({'X': X_list[::-1], 'Y': Y, 'T': T}, open('data/dataset_%s.pkl' % path, 'wb'))
 
 
 if __name__ == '__main__':

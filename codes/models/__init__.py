@@ -1,9 +1,10 @@
 import numpy as np
 from scipy.optimize import minimize
 from scipy.stats import expon, rayleigh, gompertz, pareto
+from sklearn.base import BaseEstimator
 
 
-class Model:
+class Model(BaseEstimator):
     def __init__(self):
         self.w = None  # vector of coefficients
         self.f = None  # negative log likelihood for training data

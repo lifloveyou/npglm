@@ -1,23 +1,6 @@
 .idea
 
-/paper-old
-/code-matlab-old/
-/codes/features/dblp/all/
 /codes/features/dblp/data/
-/codes/features/dblp/db/
-/codes/features/dblp/temp/
-/codes/features/weibo/data/
-/codes/features/weibo/temp/
-/codes/features/citation/th/
-/codes/features/citation/data/
-/codes/features/citation/db/
-/codes/features/citation/temp/
-/codes/tests/logl_gom_10
-/codes/tests/logl_gom_5
-/codes/tests/logl_ray_10
-/codes/tests/logl_gom_0
-/codes/tests/logl_ray_5
-/codes/tests/logl_ray_0
 /codes/features/delicious/data/
 /codes/features/movielens/data/
 

@@ -16,23 +16,24 @@ class NpGlm(Model):
 
     def fit(self, X, Y, T):  # X,Y, and T must be sorted by T beforehand
         self.t = T
-        max_iter = 1000
+        max_iter = 2000
+        # print(max_iter)
         d = X.shape[1]
         self.w = np.zeros((d, 1))
         f_old = np.inf
 
         for i in range(max_iter):
             self.cumulative_h(X, Y)
-            h = self.h_estimator()
+            # h = self.h_estimator()
 
             def nloglf(w):
-                return NpGlm.nlogl(w, h, self.H, X, Y, T)
+                return NpGlm.nlogl(w, None, self.H, X, Y, T)
 
             self.w, self.f = optimize(nloglf, self.w)
 
             # logging.info('%d\t%f' % (i, self.f / len(T)))
-            if self.conv is not None:
-                self.conv.append((i, -self.f / len(T)))
+            # if self.conv is not None:
+            #    self.conv.append((i, -self.f / len(T)))
 
             if abs(self.f - f_old) < 1e-4:
                 break
@@ -109,7 +110,7 @@ class NpGlm(Model):
         negative log likelihood (complete)
         refer to formulations of NP-GLM
         """
-        h[h == 0] = 1e-20
+        # h[h == 0] = 1e-20
         Xw = np.dot(X, w)
         E = np.exp(Xw)
         HE = H * E

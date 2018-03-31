@@ -48,9 +48,8 @@ def generate_c_index(T_true, T_pred, Y):
 
 def prepare_data(X, Y, T):
     T = T.astype(np.float64)
-    T /= timestamp_delta_generator()
-    min_T = min(T)
-    T += np.random.rand(len(T)) * Y - min_T
+    T /= timestamp_delta_generator(months=1)
+    T += np.random.rand(len(T)) * Y
 
     index = np.argsort(T, axis=0).ravel()
     X = X[index, :]
@@ -129,7 +128,7 @@ def main():
         'np',
         'exp',
         'ray',
-        'gom'
+        # 'gom'
     ]
 
     # ow_set = [12, 18, 24]
@@ -159,7 +158,7 @@ def main():
         mean = results.mean(axis=0)
         std = results.std(axis=0)
         # print('& $%.2f\\pm%.2f$ & $%.2f\\pm%.2f$ &' % (mean[0], std[0], mean[1], std[1]), end=" ")
-        print('MAE=%.2f\tMRE=%.2f' % (mean[0], mean[1]))
+        print('MAE=%.2f\tMRE=%.2f\tCI=%.2f' % (mean[0], mean[1], mean[2]))
     print("")
 
 

@@ -189,7 +189,7 @@ def sample_generator(usr_rates_movies_ds, observation_begin, observation_end, ra
             u = indexer.get_index('user', line_items[0])
             v = indexer.get_index('movie', line_items[1])
             if not (u is None or v is None):
-                observed_samples[u, v] = rating_timestamp
+                observed_samples[u, v] = rating_timestamp - observation_begin
 
     # logging.info('Observed samples found.')
 
@@ -208,7 +208,7 @@ def sample_generator(usr_rates_movies_ds, observation_begin, observation_end, ra
             u = user_list[i]
             v = movie_list[j]
             if (u, v) not in set_observed:
-                censored_samples[u, v] = observation_end + 1
+                censored_samples[u, v] = observation_end - observation_begin + 1
 
     print(len(observed_samples) + len(censored_samples))
     return observed_samples, censored_samples

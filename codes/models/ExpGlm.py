@@ -1,11 +1,10 @@
 import numpy as np
-import scipy.special
-from codes.models import Model
 from codes.models import augment
 from codes.models import optimize
+from codes.models.WblGlm import WblGlm
 
 
-class ExpGlm(Model):
+class ExpGlm(WblGlm):
     def __init__(self):
         super().__init__()
         self.a = 1
@@ -14,34 +13,8 @@ class ExpGlm(Model):
         X = augment(X)
         d = X.shape[1]
         self.w = np.zeros((d, 1))
-        nloglw = lambda w: ExpGlm.nloglw(w, self.a, X, Y, T)
+        nloglw = lambda w: WblGlm.nloglw(w, self.a, X, Y, T)
         self.w, self.f = optimize(nloglw, self.w)
-
-    def mean(self, X):
-        X = augment(X)
-        Beta = np.exp(-np.dot(X, self.w))
-        return Beta * scipy.special.gamma(1 + 1/self.a)
-
-    def quantile(self, X, q):
-        X = augment(X)
-        Beta = np.exp(-np.dot(X, self.w))
-        T = Beta * (-np.log(1 - q))**(1/self.a)
-        return T
-
-    @staticmethod
-    def nloglw(w, a, X, Y, T):
-        """
-        negative log likelihood with respect to w
-        refer to formulations of Weibull glm
-        """
-        Xw = np.dot(X, w)
-        E = np.exp(a * Xw)
-        TE = (T ** a) * E
-        p = X * (TE - Y)[:, None] # correct: TE-Y
-        f = np.sum(TE - a * Xw * Y, axis=0)
-        g = a * np.sum(p, axis=0)
-        h = np.dot(a * a * X.T, (X * TE[:, None]))
-        return f, g, h
 
 
 def main():
