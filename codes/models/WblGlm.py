@@ -12,7 +12,7 @@ class WblGlm(Model):
     def fit(self, X, Y, T):
         X = augment(X)
         d = X.shape[1]
-        max_iter = 1000
+        max_iter = 2000
         self.w = np.zeros((d, 1))
         f_old = np.inf
 

@@ -1,3 +1,4 @@
+import os
 import logging
 import pickle
 import random
@@ -210,7 +211,7 @@ def sample_generator(usr_rates_movies_ds, observation_begin, observation_end, ra
             if (u, v) not in set_observed:
                 censored_samples[u, v] = observation_end - observation_begin + 1
 
-    print(len(observed_samples) + len(censored_samples))
+    # print(len(observed_samples) + len(censored_samples))
     return observed_samples, censored_samples
 
 
@@ -220,46 +221,46 @@ def extract_features(rate_sparse, attach_sparse, played_by_sparse, directed_by_s
     num_metapaths = 11
     MP = [None for _ in range(num_metapaths)]
     events = [threading.Event() for _ in range(num_metapaths)]
-    MUM_sparse = rate_sparse.T @ rate_sparse
+    MUM_sparse = rate_sparse.T.dot(rate_sparse)
 
     def worker(i):
         if i == 0:
-            MP[i] = rate_sparse @ played_by_sparse @ played_by_sparse.T
+            MP[i] = rate_sparse.dot(played_by_sparse.dot(played_by_sparse.T))
             logging.debug('0: U-M-A-M')
         elif i == 1:
-            MP[i] = rate_sparse @ directed_by_sparse @ directed_by_sparse.T
+            MP[i] = rate_sparse.dot(directed_by_sparse.dot(directed_by_sparse.T))
             logging.debug('1: U-M-D-M')
         elif i == 2:
-            MP[i] = rate_sparse @ has_genre_sparse @ has_genre_sparse.T
+            MP[i] = rate_sparse.dot(has_genre_sparse.dot(has_genre_sparse.T))
             logging.debug('2: U-M-G-M')
         elif i == 3:
-            MP[i] = rate_sparse @ attach_sparse.T @ attach_sparse
+            MP[i] = rate_sparse.dot(attach_sparse.T.dot(attach_sparse))
             logging.debug('3: U-M-T-M')
         elif i == 4:
-            MP[i] = rate_sparse @ produced_in_sparse @ produced_in_sparse.T
+            MP[i] = rate_sparse.dot(produced_in_sparse.dot(produced_in_sparse.T))
             logging.debug('4: U-M-C-M')
         elif i == 5:
-            MP[i] = rate_sparse @ MUM_sparse
+            MP[i] = rate_sparse.dot(MUM_sparse)
             logging.debug('5: U-M-U-M')
         elif i == 6:
             events[0].wait()
-            MP[i] = MP[0] @ MUM_sparse
+            MP[i] = MP[0].dot(MUM_sparse)
             logging.debug('6: U-M-A-M-U-M')
         elif i == 7:
             events[1].wait()
-            MP[i] = MP[1] @ MUM_sparse
+            MP[i] = MP[1].dot(MUM_sparse)
             logging.debug('7: U-M-D-M-U-M')
         elif i == 8:
             events[2].wait()
-            MP[i] = MP[2] @ MUM_sparse
+            MP[i] = MP[2].dot(MUM_sparse)
             logging.debug('8: U-M-G-M-U-M')
         elif i == 9:
             events[3].wait()
-            MP[i] = MP[3] @ MUM_sparse
+            MP[i] = MP[3].dot(MUM_sparse)
             logging.debug('10: U-M-T-M-U-M')
         elif i == 10:
             events[4].wait()
-            MP[i] = MP[4] @ MUM_sparse
+            MP[i] = MP[4].dot(MUM_sparse)
             logging.debug('9: U-M-C-M-U-M')
         events[i].set()
 
@@ -295,30 +296,33 @@ def extract_features(rate_sparse, attach_sparse, played_by_sparse, directed_by_s
     return np.array(X), np.array(Y), np.array(T)
 
 
-def main():
-    logging.basicConfig(level=logging.DEBUG, format='%(asctime)s: %(message)s', datefmt='%H:%M:%S')
+def run(delta, observation_window, n_snapshots):
+    dir_path = os.path.dirname(os.path.realpath(__file__))
+    cur_path = os.getcwd()
+    os.chdir(dir_path)
+    logging.basicConfig(level=logging.ERROR, format='%(asctime)s: %(message)s', datefmt='%H:%M:%S')
 
     with open('data/user_ratedmovies-timestamps.dat') as user_rates_movies_ds:
         user_rates_movies_ds = user_rates_movies_ds.read().splitlines()
     with open('data/user_taggedmovies-timestamps.dat') as user_tags_movies_ds:
         user_tags_movies_ds = user_tags_movies_ds.read().splitlines()
-    with open('data/movie_actors.dat') as movie_actor_ds:
+    with open('data/movie_actors.dat', encoding='latin-1') as movie_actor_ds:
         movie_actor_ds = movie_actor_ds.read().splitlines()
-    with open('data/movie_directors.dat') as movie_director_ds:
+    with open('data/movie_directors.dat', encoding='latin-1') as movie_director_ds:
         movie_director_ds = movie_director_ds.read().splitlines()
     with open('data/movie_genres.dat') as movie_genre_ds:
         movie_genre_ds = movie_genre_ds.read().splitlines()
     with open('data/movie_countries.dat') as movie_countries_ds:
         movie_countries_ds = movie_countries_ds.read().splitlines()
 
-    delta = timestamp_delta_generator(months=3)  # [1 2 3]
-    ow = 24  # [12 18 24]
-    n_snaps = 15  # [9 12 15]
+    delta = timestamp_delta_generator(months=delta)  # [1 2 3]
+    # observation_window = 24  # [12 18 24]
+    # n_snapshots = 15  # [9 12 15]
 
     observation_end = datetime(2009, 1, 1).timestamp()
-    observation_begin = observation_end - timestamp_delta_generator(months=ow)
+    observation_begin = observation_end - timestamp_delta_generator(months=observation_window)
     feature_end = observation_begin
-    feature_begin = feature_end - n_snaps * delta
+    feature_begin = feature_end - n_snapshots * delta
 
     # feature_begin = datetime(2006, 1, 1).timestamp()
     # feature_end = datetime(2008, 1, 1).timestamp()
@@ -343,8 +347,8 @@ def main():
     # print(delta)
     # print(observation_end - observation_begin)
 
-    for t in range(int(feature_end - delta), int(feature_begin), -delta):
-        print(datetime.fromtimestamp(t))
+    for t in range(int(feature_end - delta), int(feature_begin-1), -int(delta)):
+        # print(datetime.fromtimestamp(t))
         # print(datetime.fromtimestamp(t))
         rate_sparse, attach_sparse, played_by_sparse, directed_by_sparse, has_genre_sparse, produced_in_sparse \
             = parse_dataset(
@@ -358,8 +362,12 @@ def main():
         X_list.append(X)
 
     # X = np.stack(X_list[::-1], axis=1)  # X.shape = (n_samples, timesteps, n_features)
-    pickle.dump({'X': X_list[::-1], 'Y': Y, 'T': T}, open('data/dataset.pkl', 'wb'))
+    # pickle.dump({'X': X_list[::-1], 'Y': Y, 'T': T}, open('data/dataset.pkl', 'wb'))
+    logging.info('done.')
+    os.chdir(cur_path)
+    return X_list, Y, T
 
 
 if __name__ == '__main__':
-    main()
+    run(delta=1, observation_window=12, n_snapshots=9)
+    pass

@@ -5,7 +5,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import MinMaxScaler
 
 
-def encode(X_list, Y, epochs=50, latent_factor=2):
+def encode(X_list, epochs=50, latent_factor=2):
     for i in range(1, len(X_list)):
         X_list[i] -= X_list[i - 1]
     scaler = MinMaxScaler(copy=False)
@@ -27,6 +27,7 @@ def encode(X_list, Y, epochs=50, latent_factor=2):
     encoder = Model(inputs, encoded)
 
     sequence_autoencoder.compile(optimizer='adadelta', loss='binary_crossentropy')
-    sequence_autoencoder.fit(X, X, epochs=epochs, batch_size=256, shuffle=True)
+    history = sequence_autoencoder.fit(X, X, epochs=epochs, batch_size=256, shuffle=True)
     # sequence_autoencoder.save('autorencoder.model')
+    print('Autoencoder Training Loss: %.4f' % history.history['loss'][-1])
     return encoder.predict(X)

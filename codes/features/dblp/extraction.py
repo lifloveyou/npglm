@@ -1,4 +1,5 @@
 import Stemmer
+import os
 import random
 import pickle
 import bisect
@@ -154,7 +155,7 @@ def generate_papers(datafile, feature_begin, feature_end, observation_begin, obs
         output.write('To: %s\n' % max_year)
 
     result = papers_feature_window, papers_observation_window, indexer.indices
-    pickle.dump(result, open('data/papers_%s.pkl' % path, 'wb'))
+    # pickle.dump(result, open('data/papers_%s.pkl' % path, 'wb'))
     return result
 
 
@@ -200,108 +201,108 @@ def extract_features(W, C, P, I, observed_samples, censored_samples):
     def worker(i):
         if i == 0:
             logging.debug('0: A-P-A')
-            MP[i] = W @ W.T
+            MP[i] = W.dot(W.T)
         elif i == 1:
             events[0].wait()
             logging.debug('1: A-P-A-P-A')
-            MP[i] = MP[0] @ MP[0].T
+            MP[i] = MP[0].dot(MP[0].T)
         elif i == 2:
             events[19].wait()
             logging.debug('2: A-P-V-P-A')
-            MP[i] = MP[19] @ MP[19].T
+            MP[i] = MP[19].dot(MP[19].T)
         elif i == 3:
             events[20].wait()
             logging.debug('3: A-P-T-P-A')
-            MP[i] = MP[20] @ MP[20].T
+            MP[i] = MP[20].dot(MP[20].T)
         elif i == 4:
             events[21].wait()
             logging.debug('4: A-P->P<-P-A')
-            MP[i] = MP[21] @ MP[21].T
+            MP[i] = MP[21].dot(MP[21].T)
         elif i == 5:
             events[22].wait()
             logging.debug('5: A-P<-P->P-A')
-            MP[i] = MP[22] @ MP[22].T
+            MP[i] = MP[22].dot(MP[22].T)
         elif i == 6:
             events[21].wait()
             events[22].wait()
             logging.debug('6: A-P->P->P-A')
-            MP[i] = MP[21] @ MP[22].T
+            MP[i] = MP[21].dot(MP[22].T)
         elif i == 7:
             events[0].wait()
             events[23].wait()
             logging.debug('7: A-P-P-A-P-A')
-            MP[i] = MP[23] @ MP[0]
+            MP[i] = MP[23].dot(MP[0])
         elif i == 8:
             events[1].wait()
             events[23].wait()
             logging.debug('8: A-P-P-A-P-A-P-A')
-            MP[i] = MP[23] @ MP[1]
+            MP[i] = MP[23].dot(MP[1])
         elif i == 9:
             events[2].wait()
             events[23].wait()
             logging.debug('9: A-P-P-A-P-V-P-A')
-            MP[i] = MP[23] @ MP[2]
+            MP[i] = MP[23].dot(MP[2])
         elif i == 10:
             events[3].wait()
             events[23].wait()
             logging.debug('10: A-P-P-A-P-T-P-A')
-            MP[i] = MP[23] @ MP[3]
+            MP[i] = MP[23].dot(MP[3])
         elif i == 11:
             events[4].wait()
             events[23].wait()
             logging.debug('11: A-P-P-A-P->P<-P-A')
-            MP[i] = MP[23] @ MP[4]
+            MP[i] = MP[23].dot(MP[4])
         elif i == 12:
             events[5].wait()
             events[23].wait()
             logging.debug('12: A-P-P-A-P<-P->P-A')
-            MP[i] = MP[23] @ MP[5]
+            MP[i] = MP[23].dot(MP[5])
         elif i == 13:
             events[0].wait()
             events[23].wait()
             logging.debug('13: A-P-A-P-P-A')
-            MP[i] = MP[0] @ MP[23]
+            MP[i] = MP[0].dot(MP[23])
         elif i == 14:
             events[1].wait()
             events[23].wait()
             logging.debug('14: A-P-A-P-A-P-P-A')
-            MP[i] = MP[1] @ MP[23]
+            MP[i] = MP[1].dot(MP[23])
         elif i == 15:
             events[2].wait()
             events[23].wait()
             logging.debug('15: A-P-V-P-A-P-P-A')
-            MP[i] = MP[2] @ MP[23]
+            MP[i] = MP[2].dot(MP[23])
         elif i == 16:
             events[3].wait()
             events[23].wait()
             logging.debug('16: A-P-T-P-A-P-P-A')
-            MP[i] = MP[3] @ MP[23]
+            MP[i] = MP[3].dot(MP[23])
         elif i == 17:
             events[4].wait()
             events[23].wait()
             logging.debug('17: A-P->P<-P-A-P-P-A')
-            MP[i] = MP[4] @ MP[23]
+            MP[i] = MP[4].dot(MP[23])
         elif i == 18:
             events[5].wait()
             events[23].wait()
             logging.debug('18: A-P<-P->P-A-P-P-A')
-            MP[i] = MP[5] @ MP[23]
+            MP[i] = MP[5].dot(MP[23])
         elif i == 19:
             logging.debug('A-P-V')
-            MP[i] = W @ P
+            MP[i] = W.dot(P)
         elif i == 20:
             logging.debug('A-P-T')
-            MP[i] = W @ I
+            MP[i] = W.dot(I)
         elif i == 21:
             logging.debug('A-P->P')
-            MP[i] = W @ C
+            MP[i] = W.dot(C)
         elif i == 22:
             logging.debug('A-P<-P')
-            MP[i] = W @ C.T
+            MP[i] = W.dot(C.T)
         elif i == 23:
             events[21].wait()
             logging.debug('A-P-P-A')
-            MP[23] = MP[21] @ W.T
+            MP[23] = MP[21].dot(W.T)
 
         events[i].set()
 
@@ -349,8 +350,8 @@ def generate_samples(papers_observation_window, W, C):
         else:
             written_by[paper] = [author]
 
-    APPA = W @ C @ W.T
-    num_papers = (W @ W.T).diagonal()
+    APPA = W.dot(C.dot(W.T))
+    num_papers = (W.dot(W.T)).diagonal()
     observed_samples = {}
 
     for p in papers_observation_window:
@@ -382,12 +383,15 @@ def generate_samples(papers_observation_window, W, C):
             if (u, v) not in set_observed:
                 censored_samples[u, v] = papers_observation_window[-1].year + 1
 
-    print(len(observed_samples) + len(censored_samples))
+    # print(len(observed_samples) + len(censored_samples))
     return observed_samples, censored_samples
 
 
-def main():
-    logging.basicConfig(level=logging.INFO, format='%(asctime)s: %(message)s', datefmt='%H:%M:%S')
+def run(delta, observation_window, n_snapshots):
+    dir_path = os.path.dirname(os.path.realpath(__file__))
+    cur_path = os.getcwd()
+    os.chdir(dir_path)
+    logging.basicConfig(level=logging.ERROR, format='%(asctime)s: %(message)s', datefmt='%H:%M:%S')
 
     conf_list = {
         'db': [
@@ -402,14 +406,14 @@ def main():
         ]
     }[path]
 
-    delta = 1
-    ow = 3
-    n_snaps = 5
+    # delta = 1
+    # observation_window = 3
+    # n_snapshots = 5
 
     observation_end = 2016
-    observation_begin = observation_end - ow
+    observation_begin = observation_end - observation_window
     feature_end = observation_begin
-    feature_begin = feature_end - delta*n_snaps
+    feature_begin = feature_end - delta * n_snapshots
 
     papers_feat_window, papers_obs_window, counter = generate_papers('data/dblp.txt', feature_begin, feature_end,
                                                                      observation_begin, observation_end,
@@ -420,17 +424,20 @@ def main():
     X, Y, T = extract_features(W, C, P, I, observed_samples, censored_samples)
     T -= observation_begin
     X_list = [X]
-    delta = 1
 
     for t in range(feature_end - delta, feature_begin - 1, -delta):
-        print('=============%d=============' % t)
+        # print('=============%d=============' % t)
         W, C, I, P = parse_dataset(papers_feat_window, feature_begin, t, counter)
         X, _, _ = extract_features(W, C, P, I, observed_samples, censored_samples)
         X_list.append(X)
 
     # X = np.stack(X_list[::-1], axis=1)  # X.shape = (n_samples, timesteps, n_features)
-    pickle.dump({'X': X_list[::-1], 'Y': Y, 'T': T}, open('data/dataset_%s.pkl' % path, 'wb'))
+    # pickle.dump({'X': X_list[::-1], 'Y': Y, 'T': T}, open('data/dataset_%s.pkl' % path, 'wb'))
+    logging.info('done.')
+    os.chdir(cur_path)
+    return X_list, Y, T
 
 
 if __name__ == '__main__':
-    main()
+    # main()
+    pass

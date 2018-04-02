@@ -1,6 +1,5 @@
 import os
 import logging
-import pickle
 import random
 import threading
 from datetime import datetime
@@ -21,26 +20,26 @@ def extract_features(contact_sparse, save_sparse, attach_sparse, observed_sample
     def worker(i):
         if i == 0:
             logging.debug('0: U-U-U')
-            MP[i] = contact_sparse @ contact_sparse
+            MP[i] = contact_sparse.dot(contact_sparse)
         elif i == 1:
             logging.debug('1: U-B-U')
-            MP[i] = save_sparse @ save_sparse.T
+            MP[i] = save_sparse.dot(save_sparse.T)
         elif i == 2:
             logging.debug('2: U-B-T-B-U')
-            UBT = save_sparse @ attach_sparse.T
-            MP[i] = UBT @ UBT.T
+            UBT = save_sparse.dot(attach_sparse.T)
+            MP[i] = UBT.dot(UBT.T)
         elif i == 3:
             events[0].wait()
             logging.debug('3: U-U-U-U')
-            MP[i] = MP[0] @ contact_sparse
+            MP[i] = MP[0].dot(contact_sparse)
         elif i == 4:
             events[1].wait()
             logging.debug('4: U-B-U-U')
-            MP[i] = MP[1] @ contact_sparse
+            MP[i] = MP[1].dot(contact_sparse)
         elif i == 5:
             events[2].wait()
             logging.debug('5: U-B-T-B-U-U')
-            MP[i] = MP[2] @ contact_sparse
+            MP[i] = MP[2].dot(contact_sparse)
 
         events[i].set()
 
@@ -78,8 +77,7 @@ def extract_features(contact_sparse, save_sparse, attach_sparse, observed_sample
 
 def sample_generator(usr_dataset, observation_begin, observation_end, contact_sparse, indexer):
     logging.info('generating samples ...')
-    mapping = indexer.mapping
-    U_U = contact_sparse @ contact_sparse.T
+    U_U = contact_sparse.dot(contact_sparse.T)
     observed_samples = {}
 
     for line in usr_dataset[1:]:
@@ -109,7 +107,7 @@ def sample_generator(usr_dataset, observation_begin, observation_end, contact_sp
             if (u, v) not in set_observed:
                 censored_samples[u, v] = observation_end - observation_begin + 1
 
-    print(len(observed_samples) + len(censored_samples))
+    # print(len(observed_samples) + len(censored_samples))
 
     return observed_samples, censored_samples
 
@@ -197,7 +195,7 @@ def parse_dataset(usr_dataset, usr_bm_tg, feature_begin, feature_end, indexer):
 
 
 def run(delta, observation_window, n_snapshots):
-    logging.basicConfig(level=logging.INFO, format='%(asctime)s: %(message)s', datefmt='%H:%M:%S')
+    logging.basicConfig(level=logging.ERROR, format='%(asctime)s: %(message)s', datefmt='%H:%M:%S')
     dir_path = os.path.dirname(os.path.realpath(__file__))
     cur_path = os.getcwd()
     os.chdir(dir_path)
@@ -210,7 +208,7 @@ def run(delta, observation_window, n_snapshots):
     # observation_window = 24  # [12 18 24]
     # n_snapshots = 15  # [9 12 15]
 
-    observation_end = datetime(2010, 1, 1).timestamp()
+    observation_end = datetime(2010, 10, 1).timestamp()
     observation_begin = observation_end - timestamp_delta_generator(months=observation_window)
     feature_end = observation_begin
     feature_begin = feature_end - n_snapshots * delta
@@ -223,7 +221,7 @@ def run(delta, observation_window, n_snapshots):
     # first we need to parse the whole data set to capture all of the entities and assign indexes to them
     indexer = generate_indexer(usr_dataset, usr_bm_tg_dataset, feature_begin, feature_end)
 
-    print(datetime.fromtimestamp(feature_end))
+    # print(datetime.fromtimestamp(feature_end))
     # in this method we parse our dataset in the feature extraction window, and generate
     # the sparse matrices dedicated to each link
     contact_sparse, save_sparse, attach_sparse = parse_dataset(usr_dataset, usr_bm_tg_dataset,
@@ -241,7 +239,7 @@ def run(delta, observation_window, n_snapshots):
     # print(observation_end - observation_begin)
 
     for t in range(int(feature_end - delta), int(feature_begin - 1), -int(delta)):
-        print(datetime.fromtimestamp(t))
+        # print(datetime.fromtimestamp(t))
         contact_sparse, save_sparse, attach_sparse = parse_dataset(
             usr_dataset, usr_bm_tg_dataset, feature_begin, t, indexer)
         X, _, _ = extract_features(contact_sparse, save_sparse, attach_sparse, observed_samples, censored_samples)
