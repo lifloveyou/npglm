@@ -1,3 +1,68 @@
+\begin{figure*}
+	\centering
+	\scriptsize
+	\tikzstyle{block} = [ellipse,draw=black]
+	\tikzstyle{arrow} = [thick,->,>=stealth]
+	\tikzstyle{label} = [fill=white,inner sep=0,xshift=0.1cm,yshift=.03cm]
+	\tikzstyle{self} = [out=-110,in=-70,loop,shorten >=1pt]
+	\subfloat[DBLP\label{fig:schema:dblp}]{
+		\begin{tikzpicture}
+		\node[block] (P) at (0,0) {$\underline{P}aper$};
+		\node[block] (V) at (0,1.25) {$\underline{V}enue$};
+		\node[block] (T) at (-2.4,0) {$\underline{T}erm$};
+		\node[block] (A) at (2.4,0) {$\underline{A}uthor$};
+		\node(hidden) [draw=none] at (0,-1.5){};
+		
+		\draw [arrow] (A) -- node[label] {write}   (P);
+		\draw [arrow] (V) -- node[label] {publish} (P);           
+		\draw [arrow] (P) -- node[label] {mention} (T);
+		\draw [arrow] (P) to [self] node[label,yshift=-.2cm] {cite} (P);
+		
+		\end{tikzpicture}
+	}
+	\hfil
+	\subfloat[MovieLens\label{fig:schema:movielens}]{
+		\begin{tikzpicture}
+		
+		\node[block] (M) at (0,0) {$\underline{M}ovie$};
+		\node[block] (U) at (2.2,0) {$\underline{U}ser$};
+		\node[block] (C) at (-1.25,1.25) {$\underline{C}ountry$};
+		\node[block] (T) at (-2.2,0) {$\underline{T}ag$};
+		\node[block] (G) at (1.25,1.25) {$\underline{G}enre$};
+		\node[block] (A) at (1.25,-1.25) {$\underline{A}ctor$};
+		\node[block] (D) at (-1.25,-1.25) {$\underline{D}irector$};
+		\node(hidden) [draw=none] at (0,-1.5){};
+		
+		\draw [arrow] (U) -- node[label] {rate} (M);
+		\draw [arrow] (M) -- node[label] {has-tag} (T);
+		\draw [arrow] (M) -- node[label] {has-genre} (G);
+		\draw [arrow] (A) -- node[label] {play-in} (M);
+		\draw [arrow] (D) -- node[label] {direct} (M);
+		\draw [arrow] (M) -- node[label] {produced-in} (C);
+		
+		\end{tikzpicture}
+	}
+	\hfil
+	\subfloat[Delicious\label{fig:schema:delicious}]{
+		\begin{tikzpicture}
+		
+		\node(B) [block] at (0,0) {$\underline{B}ookmark$};
+		\node(T) [block] at (-2.4,0) {$\underline{T}ag$};
+		\node(U) [block] at (2.4,0) {$\underline{U}ser$};
+		\node(hidden) [draw=none] at (0,-1.5){};
+		
+		\draw [arrow] (U) -- node[label]{post} (B);
+		\draw [arrow] (B) -- node[label]{has-tag} (T);
+		\draw [arrow] (U) to [self] node[label,yshift=-.2cm]{contact} (U);
+		
+		\end{tikzpicture}
+		%		\vspace{1cm}
+	}
+	
+	\caption{Schema of three different heterogeneous networks. Underlined characters are used as abbreviations for corresponding node types. }
+	\label{fig:schema}
+\end{figure*}
+
 \section{Problem Formulation}\label{sec:problem}
 In this section, we introduce some important concepts and definitions used throughout the paper and formally define the problem of continuous-time relationship prediction.
 
@@ -9,43 +74,23 @@ An information network is \emph{heterogeneous} if it contains multiple kinds of 
 	The schema of a heterogeneous network $G$ is a graph $\mc{S}_G=(\mc{V}, \mc{E})$ where $\mc{V}$ is the set of different node types and $\mc{E}$ is the set of different link types in $G$.
 \end{definition}
 
-\begin{figure}
-	\centering
-	\scriptsize
-	\begin{tikzpicture}[->,>=stealth',shorten >=1pt,auto,node distance=1.5cm,semithick]
-	
-	\node[state] (P)                    {$Paper$};
-	\node[state] (V) [above=0.7cm of P] {$Venue$};
-	\node[state] (T) [left=1.2cm  of P] {$Term$};
-	\node[state] (A) [right=1.2cm of P] {$Author$};
-	
-	\path 
-	(A) edge              node {write}     (P)
-	(V) edge              node {publish}   (P)            
-	(P) edge              node {mention}   (T)
-	(P) edge [loop below] node {cite}      (P);
-	
-	\end{tikzpicture}
-	\caption{Schema for DBLP bibliographic citation network.}
-	\label{fig:schema}
-\end{figure}
+In this paper, we focus on three different heterogeneous networks: (1) DBLP bibliographic network; (2) Delicious bookmarking network; and (3) MovieLens recommendation network. The schema of these networks is depicted in Fig.~\ref{fig:schema}. As an example, in the bibliographic network, $\mc{V}=\left\lbrace {Author}, {Paper}, {Venue}, {Term}\right\rbrace$ is the set of different node types, and $\mc{E}=\left\lbrace\text{write}, \text{publish}, \text{mention}, \text{cite}\right\rbrace$ is the set of different link types.
 
-In this paper, we focus on the bibliographic network, where $\mc{V}=\left\lbrace {Author}, {Paper}, {Venue}, {Term}\right\rbrace$ is the set of different node types, and $\mc{E}=\left\lbrace{write}, {publish}, {mention}, {cite}\right\rbrace$ is the set of different link types. The schema of this network has been depicted in Fig.~\ref{fig:schema}. 
-
-As we mentioned in the Introduction section about heterogeneous networks, the concept of a link can be generalized to a relationship. In this case, a relationship could be either a single link, or a composite relation constituted by concatenation of multiple links that together has a particular semantic meaning. For example, the co-authorship relation in a bibliographic network with the schema shown in Fig.~\ref{fig:schema}, can be defined as the combination of two \emph{Author-{write}-Paper} links, making \emph{Author-{write}-Paper-{write}-Author} relation. When dealing with the link or relationship prediction in heterogeneous networks, we must exactly specify what a kind of link or relationship we are going to predict. This is called the \emph{Target Relation} \cite{sun2012will}. In this paper, we aim to predict if and when an author in a bibliographic network will cite a paper from another certain author. Thus the target relation in this case would be \emph{Author-{write}-Paper-{cite}-Paper-{write}-Author}.
+As we mentioned in the Introduction section about heterogeneous networks, the concept of a link can be generalized to a relationship. In this case, a relationship could be either a single link, or a composite relation constituted by concatenation of multiple links that together has a particular semantic meaning. For example, the co-authorship relation in the bibliographic network with the schema shown in Fig.~\ref{fig:schema:dblp}, can be defined as the combination of two \emph{Author-{write}-Paper} links, making \emph{Author-{write}-Paper-{write}-Author} relation. When dealing with link or relationship prediction in heterogeneous networks, we must exactly specify what kind of link or relationship we are going to predict. This specific relation to be predicted is called the \emph{Target Relation} \cite{sun2012will}. For example, in DBLP bibliographic network we aim to predict if and when an author will cite a paper from another author. Thus the target relation in this case would be \emph{Author-{write}-Paper-{cite}-Paper-{write}-Author}.
 
 \subsection{Dynamic Information Networks}
-An information network is \emph{dynamic} when its nodes and linkage structure could change over time. That is, in a dynamic information network, all nodes and links are associated with a birth and death time, which denotes the time range when they exist in the network. More formally, a dynamic network between time $t_0$ and $t_1$ is defined as $G^{t_0,t_1}=(V^{t_0,t_1}, E^{t_0,t_1})$ where $V^{t_0,t_1}$ and $E^{t_0,t_1}$ are the set of nodes and the set of links between time $t_0$ and $t_1$, respectively, which are defined as follows:
-\[V^{t_0,t_1}=\{v: v\in V \land t_0< t_b(v)\le t_1<t_d(v)\}\]
-\[E^{t_0,t_1}=\{e: e\in E \land t_0< t_b(e)\le t_1<t_d(e)\}\]
-where $V$ and $E$ are accordingly the set of all nodes and links ever appeared or removed during the time interval $(t_0,t_1]$, and $t_b(x)$ and $t_d(x)$ denotes the birth and death time of a network entity $x$ (which can be node or link), respectively. For the sake of simplicity, we assume that each network entity have only a single birth and death time, and we do not consider the cases of reoccurring or multiple links.
+An information network is \emph{dynamic} when its nodes and linkage structure can change over time. That is, in a dynamic information network, all nodes and links are associated with a birth and death time. More formally, a dynamic network at the timestamp $\tau$ is defined as $G^{\tau}=(V^{\tau}, E^{\tau})$ where $V^{\tau}$ and $E^{\tau}$ are respectively the set of nodes and the set of links existing in the network at the timestamp $\tau$.
+% , which are defined as follows:
+% \[V^{t_0,t_1}=\{v: v\in V \land t_0< t_b(v)\le t_1<t_d(v)\}\]
+% \[E^{t_0,t_1}=\{e: e\in E \land t_0< t_b(e)\le t_1<t_d(e)\}\]
+% where $V$ and $E$ are accordingly the set of all nodes and links ever appeared or removed during the time interval $(t_0,t_1]$, and $t_b(x)$ and $t_d(x)$ denotes the birth and death time of a network entity $x$ (which can be node or link), respectively. For the sake of simplicity, we assume that each network entity have only a single birth and death time, and we do not consider the cases of reoccurring or multiple links.
 %Furthermore, without loss of generality, we assume that the node objects are persistent over time, and only linkage structure would change. This is due to the fact that an isolated node which does not participate in any link will not have any effect on the network and can be simply ignored. By this definition, a node will bear when it make a link with another node for the first time, and it dies when it loses all of its associated links. This can be formally stated as below:
 %\[\forall v\in V^{0,\infty}: t_b(v)=\min_e t_b(e), \ v\in e\in E^{0,\infty}\]
 %\[\forall v\in V^{0,\infty}: t_d(v)=\max_e t_d(e), \ v\in e\in E^{0,\infty}\]
 
-In this paper, we consider the case that an information network is both dynamic and heterogeneous. This means that all network entities are associated with a type, and they also have their birth and death times, regardless of their types. The bibliographic network is an example of both dynamic and heterogeneous network. Whenever a new paper is published, a new \emph{Paper} node will be added to the network, alongside with the corresponding new \emph{Author}, \emph{Term}, and \emph{Venue} nodes (if they don't exist yet). New links will be formed among these newly added nodes to indicate the \textit{write}, \textit{publish} and \textit{mention} relationships. Some linkages might also form between the existing nodes and the new ones, like new \textit{cite} links connecting the new paper with the existing papers in its reference list.
+In this paper, we consider the case that an information network is both dynamic and heterogeneous. This means that all network entities are associated with a type, and can possibly have birth and death times, regardless of their types. The bibliographic network is an example of both dynamic and heterogeneous network. Whenever a new paper is published, a new \emph{Paper} node will be added to the network, alongside with the corresponding new \emph{Author}, \emph{Term}, and \emph{Venue} nodes (if they don't exist yet). New links will be formed among these newly added nodes to indicate the \textit{write}, \textit{publish} and \textit{mention} relationships. Some linkages might also form between the existing nodes and the new ones, like new \textit{cite} links connecting the new paper with the existing papers in its reference list.
 
 \subsection{Continuous-Time Relationship Prediction}
-Suppose that we are given a dynamic and heterogeneous information network as $G^{t_0,t_1}$, observed between the timestamps $t_0$ and $t_1$, together with its network schema $S_G$. Now, given the target relation $R$, the aim of continuous-time relationship prediction is to continuously forecast the building time $t\ge t_1$ of $R$ for node pairs from $G^{t_0, t_1}$ provided in the query.
+Suppose that we are given a dynamic and heterogeneous information network as $G^{\tau}$ lastly observed at the timestamps $\tau$, together with its network schema $S_G$. Now, given the target relation $R$, the aim of continuous-time relationship prediction is to continuously forecast the relationship building time $t\ge \tau$ of $R$ for any node pair of $G^{\tau}$ provided in a query.
 
 To solve this problem, we first introduce a feature extraction framework to cope with both the dynamicity and heterogeneity of the network, and then propose a non-parametric model which utilizes the extracted features to perform predictions about the building time of the target relationship.

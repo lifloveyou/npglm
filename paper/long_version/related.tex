@@ -13,50 +13,62 @@ The most relevant works to this study are available in \cite{hajibagheri2016leve
 
 Most of the aforementioned works answered the question of \emph{whether} a link will appear in the network. To the best of our knowledge, the only work that has focused on the continuous-time relationship prediction problem is proposed by Sun \etal{} \cite{sun2012will}, in which a generalized linear model based framework is suggested to model the relationship building time. They consider the building time of links as independent random variables coming from a pre-specified distribution and model the expectation as a function of a linear predictor of the extracted topological features. A shortcoming of this model is that we need to exactly specify the underlying distribution of times. We came over this problem by learning the distribution from the data using a non-parametric solution. Furthermore, we considered the temporal dynamics of the network which has been entirely ignored in their work.
 
-\begin{table*}[t]
+\begin{table}[t]
 	\scriptsize
 	\centering
-	\caption{Performance Comparison of Different Methods Under Different Lengths for Feature Extraction Window when $\Omega=6$}
+	\caption{Performance Comparison of Different Methods on Different Datasets}
 	\label{table:results2}
 	%\tiny
-	\begin{tabu} to \textwidth {X[l] c l X[c] X[c] c X[c] X[c] c X[c] X[c]}
+	\begin{tabu} to \columnwidth {c c l X[r] X[r] X[r] X[r] X[r] X[r]}
 		\toprule
-		& & 
-		& \multicolumn{2}{c}{$\Phi=5$} & & \multicolumn{2}{c}{$\Phi=10$} & & \multicolumn{2}{c}{$\Phi=15$}\\
-		\cmidrule(l){4-5} \cmidrule{7-8} \cmidrule{10-11}
 		%\cmidrule(l){2-3} \cmidrule{5-7}
 		Dataset & Feature &
-		Model & MAE & MRE & & MAE & MRE & & MAE & MRE\\
+		Model &  MAE &   MRE &   RMSE &   MSLE &   MDAE &  CI \\
 		\midrule
-		\multirow{8}{*}{dblp-db}
+		\multirow{8}{*}{\rotatebox{90}{DBLP}}
 		& \multirow{4}{*}{\rotatebox{90}{Dynamic}}
-		& 			  \npglm & $\bm{0.78\pm0.01}$ & $\bm{0.37\pm0.01}$ & & $\bm{0.76\pm0.05}$ & $\bm{0.34\pm0.03}$ & & $\bm{0.62\pm0.07}$ & $\bm{0.35\pm0.03}$ \\
-		& & \textsc{Exp-Glm} & $0.83\pm0.02$ & $0.41\pm0.05$ & & $0.83\pm0.09$ & $0.43\pm0.06$ & & $0.76\pm0.07$ & $0.40\pm0.03$ \\
-		& & \textsc{Ray-Glm} & $1.65\pm0.08$ & $1.00\pm0.03$ & & $1.90\pm0.06$ & $1.00\pm0.09$ & & $1.84\pm0.04$ & $1.00\pm0.02$ \\
-		& & \textsc{Gom-Glm} & $2.05\pm0.06$ & $1.12\pm0.06$ & & $1.89\pm0.07$ & $1.23\pm0.02$ & & $1.95\pm0.01$ & $1.17\pm0.08$ \\
+		& \npglm  &  $\bm{1.99}$ &  $\bm{0.95}$ &   $\bm{2.43}$ &   $\bm{0.30}$ &  $\bm{1.73}$ & $\bm{0.62}$ \\
+		& & \textsc{Wbl-Glm} &  2.33 &  1.10 &   2.85 &   0.36 &   2.08 & 0.58 \\
+		& & \textsc{Exp-Glm} &  3.11 &  1.39 &   3.88 &   0.52 &   2.58 & 0.50 \\
+		& & \textsc{Ray-Glm} &  4.02 &  1.83 &   4.70 &   0.66 &   3.72 & 0.35 \\
 		
-		\cmidrule{2-11}                                                                            
+		\cmidrule{2-9}                                                                            
 		& \multirow{4}{*}{\rotatebox{90}{Static}}                                                  
-		& 			  \npglm & $0.86\pm0.02$ & $0.44\pm0.01$ & & $0.85\pm0.03$ & $0.44\pm0.02$ & & $0.81\pm0.05$ & $0.41\pm0.02$ \\
-		& & \textsc{Exp-Glm} & $0.94\pm0.03$ & $0.50\pm0.02$ & & $0.93\pm0.03$ & $0.51\pm0.02$ & & $0.93\pm0.04$ & $0.51\pm0.03$ \\
-		& & \textsc{Ray-Glm} & $2.17\pm0.05$ & $1.29\pm0.04$ & & $2.16\pm0.04$ & $1.29\pm0.03$ & & $2.12\pm0.07$ & $1.28\pm0.05$ \\
-		& & \textsc{Gom-Glm} & $2.28\pm0.03$ & $1.35\pm0.02$ & & $2.28\pm0.06$ & $1.36\pm0.04$ & & $2.22\pm0.08$ & $1.34\pm0.07$ \\
+		& \npglm               &  2.76 &  1.35 &   3.07 &   0.44 &   2.88 & 0.26 \\
+		& & \textsc{Wbl-Glm}     &  2.81 &  1.38 &   3.16 &   0.45 &   2.88 & 0.48 \\
+		& & \textsc{Exp-Glm}     &  3.28 &  1.57 &   3.70 &   0.53 &   3.30 & 0.14 \\
+		& & \textsc{Ray-Glm}     &  5.04 &  2.28 &   5.26 &   0.85 &   5.12 & 0.01 \\
 		
-		\midrule                                                                                   
-		\multirow{8}{*}{dblp-th}                                                                   
-		& \multirow{4}{*}{\rotatebox{90}{Dynamic}}                                                 
-		& 			  \npglm & $\bm{0.77\pm0.01}$ & $\bm{0.40\pm0.01}$ & & $\bm{0.75\pm0.09}$ & $\bm{0.36\pm0.02}$ & & $\bm{0.70\pm0.04}$ & $\bm{0.36\pm0.09}$ \\
-		& & \textsc{Exp-Glm} & $0.85\pm0.06$ & $0.40\pm0.09$ & & $0.75\pm0.09$ & $0.43\pm0.06$ & & $0.75\pm0.08$ & $0.47\pm0.02$ \\
-		& & \textsc{Ray-Glm} & $1.77\pm0.05$ & $1.15\pm0.09$ & & $1.83\pm0.06$ & $1.11\pm0.02$ & & $1.95\pm0.08$ & $1.10\pm0.06$ \\
-		& & \textsc{Gom-Glm} & $2.10\pm0.06$ & $1.07\pm0.03$ & & $1.88\pm0.05$ & $1.23\pm0.02$ & & $1.76\pm0.04$ & $1.08\pm0.05$ \\
+		\midrule
+		\multirow{8}{*}{\rotatebox{90}{Delicious}}
+		& \multirow{4}{*}{\rotatebox{90}{Dynamic}}
+		& \npglm  &  $\bm{2.10}$ &  $\bm{1.20}$ &   $\bm{2.55}$ &   $\bm{0.35}$ &   $\bm{2.05}$ & $\bm{0.70}$ \\
+		& & \textsc{Wbl-Glm} &  2.37 &  1.31 &   2.89 &   0.40 &   2.16 & 0.57 \\
+		& & \textsc{Exp-Glm} &  3.21 &  1.58 &   3.84 &   0.54 &   2.89 & 0.55 \\
+		& & \textsc{Ray-Glm} &  3.90 &  2.07 &   4.66 &   0.68 &   3.91 & 0.40 \\
 		
-		\cmidrule{2-11}                                                                            
+		\cmidrule{2-9}                 
 		& \multirow{4}{*}{\rotatebox{90}{Static}}                                                  
-		& 			  \npglm & $0.90\pm0.03$ & $0.46\pm0.01$ & & $0.89\pm0.04$ & $0.45\pm0.01$ & & $0.85\pm0.04$ & $0.43\pm0.03$ \\
-		& & \textsc{Exp-Glm} & $0.98\pm0.03$ & $0.52\pm0.03$ & & $0.97\pm0.03$ & $0.53\pm0.03$ & & $0.98\pm0.04$ & $0.54\pm0.03$ \\
-		& & \textsc{Ray-Glm} & $2.33\pm0.07$ & $1.32\pm0.04$ & & $2.29\pm0.04$ & $1.36\pm0.04$ & & $2.21\pm0.12$ & $1.34\pm0.08$ \\
-		& & \textsc{Gom-Glm} & $2.42\pm0.04$ & $1.41\pm0.06$ & & $2.40\pm0.08$ & $1.41\pm0.06$ & & $2.31\pm0.08$ & $1.40\pm0.07$ \\
+		& \npglm               &  2.33 &  1.46 &   2.80 &   0.41 &   2.17 & 0.61 \\
+		& & \textsc{Wbl-Glm}     &  2.65 &  1.62 &   3.23 &   0.47 &   2.26 & 0.43 \\
+		& & \textsc{Exp-Glm}     &  3.35 &  1.91 &   4.17 &   0.59 &   2.75 & 0.35 \\
+		& & \textsc{Ray-Glm}     &  4.81 &  2.61 &   5.27 &   0.85 &   4.28 & 0.12 \\
+		
+		\midrule
+		\multirow{8}{*}{\rotatebox{90}{MovieLens}}
+		& \multirow{4}{*}{\rotatebox{90}{Dynamic}}
+		& \npglm  &  $\bm{2.48}$ &  $\bm{3.08}$ &   $\bm{3.04}$ &   $\bm{0.55}$ &  $\bm{2.14}$ & $\bm{0.70}$ \\
+		& & \textsc{Wbl-Glm} &  3.06 &  3.61 &   3.79 &   0.65 &   2.60 & 0.56 \\
+		& & \textsc{Exp-Glm} &  3.79 &  2.70 &   4.60 &   0.78 &   3.48 & 0.45 \\
+		& & \textsc{Ray-Glm} &  4.98 &  3.58 &   5.63 &   1.05 &   4.83 & 0.33 \\
+		
+		\cmidrule{2-9}                                                                            
+		& \multirow{4}{*}{\rotatebox{90}{Static}}                                                  
+		& \npglm               &  2.92 &  3.44 &   3.45 &   0.67 &   3.36 & 0.50 \\
+		& & \textsc{Wbl-Glm}     &  2.99 &  3.52 &   3.51 &   0.69 &   3.37 & 0.49 \\
+		& & \textsc{Exp-Glm}     &  3.42 &  2.89 &   3.86 &   0.78 &   3.82 & 0.49 \\
+		& & \textsc{Ray-Glm}     &  5.32 &  4.06 &   5.62 &   1.17 &   5.70 & 0.20 \\
 		
 		\bottomrule
 	\end{tabu}
-\end{table*}
+\end{table}

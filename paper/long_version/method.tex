@@ -5,14 +5,15 @@
 	\label{table:dists}
 	\begin{tabu} to \textwidth {X X[c] X[c] X[c] X[c]}
 		\toprule
-		Distribution & Density function & Reliability function & Intensity function & Cumulative intensity\\
+		Distribution & Density function & Survival function & Intensity function & Cumulative intensity\\
 		& $f_T(t)$ & $S(t)$ & $\lambda(t)$ & $\Lambda(t)$\\[1pt]
 		\midrule % In-table horizontal line
 		Exponential & $\alpha\exp(-\alpha t)$ & $\exp(-\alpha t)$ & $\alpha$ & $\alpha t$\\[4pt]
 		%\midrule
 		Rayleigh & $\frac{t}{\sigma^2}\exp(-\frac{t^2}{2\sigma^2})$ & $\exp(-\frac{t^2}{2\sigma^2})$ & $\frac{t}{\sigma^2}$ & $\frac{t^2}{2\sigma^2}$\\[4pt]
 		%\midrule % In-table horizontal line
-		Gompertz & $\alpha e^t\exp\left\lbrace -\alpha(e^t-1) \right\rbrace$ & $\exp\left\lbrace -\alpha(e^t-1) \right\rbrace$ & $\alpha e^t$ & $\alpha e^t$\\[2pt]
+		Gompertz & $\alpha e^t\exp\left\lbrace -\alpha(e^t-1) \right\rbrace$ & $\exp\left\lbrace -\alpha(e^t-1) \right\rbrace$ & $\alpha e^t$ & $\alpha e^t$\\[4pt]
+		Weibull & $\frac{\alpha t^{\alpha-1}}{\beta^\alpha}\exp\left\lbrace-(\frac{t}{\beta})^\alpha\right\rbrace$ & $\exp\left\lbrace-(\frac{t}{\beta})^\alpha\right\rbrace$ & $\frac{\alpha t^{\alpha-1}}{\beta^\alpha}$ & $(\frac{t}{\beta})^\alpha$\\[2pt]
 		%\midrule % In-table horizontal line
 		%Power-Law & $\frac{\alpha\beta^\alpha}{t^{\alpha+1}}$ & $\left(\frac{\beta}{t}\right)^\alpha$ & $\frac{\alpha}{t}$ & $\alpha\ln(t)$\\
 		\bottomrule % Bottom horizontal line

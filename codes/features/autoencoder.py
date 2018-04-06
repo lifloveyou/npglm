@@ -26,7 +26,7 @@ def encode(X_list, epochs=50, latent_factor=2):
     sequence_autoencoder = Model(inputs, decoded)
     encoder = Model(inputs, encoded)
 
-    sequence_autoencoder.compile(optimizer='adadelta', loss='binary_crossentropy')
+    sequence_autoencoder.compile(optimizer='adadelta', loss='mse')
     history = sequence_autoencoder.fit(X, X, epochs=epochs, batch_size=256, shuffle=True)
     # sequence_autoencoder.save('autorencoder.model')
     print('Autoencoder Training Loss: %.4f' % history.history['loss'][-1])

@@ -1,6 +1,6 @@
 \section{Experiments}\label{sec:results}
 
-We have conducted extensive experiments on both synthetic and real-world datasets to assess the effectiveness of \npglm.
+We have conducted extensive experiments on both synthetic and real-world datasets to assess the effectiveness of \npglm and the proposed feature extraction framework.
 
 \subsection{Experiments on synthetic data}
 We use synthetic data to verify the correctness of \npglm and its learning algorithm. Since \npglm is a non-parametric method, we generate synthetic data using various parametric models with previously known random parameters, and evaluate how well \npglm can learn the parameters and the underlying distribution of the generated data.
@@ -48,9 +48,9 @@ Since \npglm's learning is done in an iterative manner, we first analyzed whethe
 In Fig.~\ref{fig:syn-cvg-c}, we fixed $N=1000$ and performed the same experiment this time using different censoring ratios. According to the figure, we see that by increasing the censoring ratio, the convergence rate increases. This is because \npglm infers the values of $H(t)$ for all $t$ in the observation window. Therefore, as the censoring ratio increases, the observation window is decreased, so \npglm has to infer a fewer number of parameters, leading to a faster convergence. Note that as opposed to Fig.~\ref{fig:syn-cvg-n}, here a higher log-likelihood doesn't necessarily indicate a better fit, due to the likelihood marginalization we get by the censored samples.
 
 
-Next, we analyzed the performance of \npglm in terms of the achieved log-likelihood on a separate test dataset by gradually increasing the number of training samples under different censoring ratios. We put away a number of 100K synthetically generated test data samples and trained \npglm with a training dataset of size ranging from 100 to 900. In each step, we calculated the average log-likelihood of the trained model on the test. We repeated this experiment using different censoring ratios. The result is depicted in Fig.~\ref{fig:syn-logl-n}. According to the figure, the log-likelihood achieved on the test dataset gradually rises with the increase in the number of training samples. That is because using more training samples could result in a better estimate of the parameters by which the test data samples are generated.
+%Next, we analyzed the performance of \npglm in terms of the achieved log-likelihood on a separate test dataset by gradually increasing the number of training samples under different censoring ratios. We put away a number of 100K synthetically generated test data samples and trained \npglm with a training dataset of size ranging from 100 to 900. In each step, we calculated the average log-likelihood of the trained model on the test. We repeated this experiment using different censoring ratios. The result is depicted in Fig.~\ref{fig:syn-logl-n}. According to the figure, the log-likelihood achieved on the test dataset gradually rises with the increase in the number of training samples. That is because using more training samples could result in a better estimate of the parameters by which the test data samples are generated.
 
-In another experiment, we evaluated how good \npglm can infer the parameters used to generate the synthetic data. To this end, we varied the number of training samples $N$ and measured the mean absolute error (MAE) between the learned weight vector $\hat{\mathbf{w}}$ and the ground truth. Fig.~\ref{fig:syn-mae-n} illustrates the result for different censoring ratios. It can be seen that as the number of training samples increases, the MAE gradually decreases. The other point to notice is that more censoring ratio results in higher error due to the information loss we get by censoring.
+Next, we evaluated how good \npglm can infer the parameters used to generate the synthetic data. To this end, we varied the number of training samples $N$ and measured the mean absolute error (MAE) between the learned weight vector $\hat{\mathbf{w}}$ and the ground truth. Fig.~\ref{fig:syn-mae-n} illustrates the result for different censoring ratios. It can be seen that as the number of training samples increases, the MAE gradually decreases. The other point to notice is that more censoring ratio results in higher error due to the information loss we get by censoring.
 
 
 
@@ -64,7 +64,7 @@ Finally, we investigated whether censored samples are informative or not. For th
 		[
 		tiny,
 		width=0.56\columnwidth,
-		height=4cm,
+		height=4.5cm,
 		legend pos=south east,
 		legend style={font=\scriptsize,nodes={scale=0.75, transform shape}},
 		xmajorgrids,
@@ -100,7 +100,7 @@ Finally, we investigated whether censored samples are informative or not. For th
 		[
 		tiny,
 		width=0.56\columnwidth,
-		height=4cm,
+		height=4.5cm,
 		legend pos=south east,
 		legend style={font=\scriptsize,nodes={scale=0.75, transform shape}},
 		xmajorgrids,
@@ -141,7 +141,7 @@ Finally, we investigated whether censored samples are informative or not. For th
 		[
 		tiny,
 		width=0.56\columnwidth,
-		height=4cm,
+		height=4.5cm,
 		legend pos=south east,
 		legend style={font=\scriptsize,nodes={scale=0.75, transform shape}},
 		xmajorgrids,
@@ -177,7 +177,7 @@ Finally, we investigated whether censored samples are informative or not. For th
 		[
 		tiny,
 		width=0.56\columnwidth,
-		height=4cm,
+		height=4.5cm,
 		legend pos=south east,
 		legend style={font=\scriptsize,nodes={scale=0.75, transform shape}},
 		xmajorgrids,
@@ -211,82 +211,82 @@ Finally, we investigated whether censored samples are informative or not. For th
 	\label{fig:syn-cvg-c}
 \end{figure}
 
-\begin{figure}[t]
-	\hfill  
-	\subfloat[Rayleigh distribution]{
-		\begin{tikzpicture}[trim axis left, trim axis right]
-		\begin{axis}
-		[
-		tiny,
-		width=0.56\columnwidth,
-		height=4cm,
-		legend pos=south east,
-		legend style={font=\scriptsize,nodes={scale=0.75, transform shape}},
-		grid,
-		y tick label style={
-			/pgf/number format/.cd,
-			fixed,
-			fixed zerofill,
-			precision=1,
-			/tikz/.cd
-		},
-		xlabel=$ N $,
-		ylabel=$\log\mathcal{L}$,
-		ylabel shift = -4 pt,
-		%xticklabel style={rotate=90},
-		%		ymax=0.35,
-		xmin=0,
-		xmax=1000,
-		%		ytick={0.05,0.10,...,0.35},
-		xtick={100,300,...,900},
-		restrict x to domain=0:900,
-		legend entries={0\% censoring, 5\% censoring, 10\% censoring},
-		]
-		\addplot[color=purple,mark=square*,mark size=1.1,thick] table{results/logl_ray_0.txt};
-		\addplot[color=cyan,mark=*,mark size=1.1,thick] table{results/logl_ray_5.txt};
-		\addplot[color=orange,mark=triangle*,mark size=1.5,thick] table{results/logl_ray_10.txt};
-		\end{axis}
-		\end{tikzpicture}
-	}\hspace{1cm}
-	\subfloat[Gompertz distribution]{
-		\begin{tikzpicture}[trim axis left, trim axis right]
-		\begin{axis}
-		[
-		tiny,
-		width=0.56\columnwidth,
-		height=4cm,
-		legend pos=south east,
-		legend style={font=\scriptsize,nodes={scale=0.75, transform shape}},
-		grid,
-		y tick label style={
-			/pgf/number format/.cd,
-			fixed,
-			fixed zerofill,
-			precision=1,
-			/tikz/.cd
-		},
-		xlabel=$ N $,
-		%xticklabel style={rotate=90},
-		ylabel=$\log\mathcal{L}$,
-		ylabel shift = -4 pt,
-		%		ymax=0.22,
-		%		ymin=0.01,
-		xmin=0,
-		xmax=1000,
-		xtick={100,300,...,900},
-		restrict x to domain=0:900,
-		%		ytick={0.04,0.07,...,0.21},
-		legend entries={0\% censoring, 5\% censoring, 10\% censoring},
-		]
-		\addplot[color=purple,mark=square*,mark size=1.1,thick] table{results/logl_gom_0.txt};
-		\addplot[color=cyan,mark=*,mark size=1.1,thick] table{results/logl_gom_5.txt};
-		\addplot[color=orange,mark=triangle*,mark size=1.5,thick] table{results/logl_gom_10.txt};
-		\end{axis}
-		\end{tikzpicture}
-	}
-	\caption{\npglm's achieved average log-likelihood on the separate test data vs the number of training samples ($N$) with different censoring ratios.}
-	\label{fig:syn-logl-n}
-\end{figure}
+%\begin{figure}[t]
+%	\hfill  
+%	\subfloat[Rayleigh distribution]{
+%		\begin{tikzpicture}[trim axis left, trim axis right]
+%		\begin{axis}
+%		[
+%		tiny,
+%		width=0.56\columnwidth,
+%		height=4.5cm,
+%		legend pos=south east,
+%		legend style={font=\scriptsize,nodes={scale=0.75, transform shape}},
+%		grid,
+%		y tick label style={
+%			/pgf/number format/.cd,
+%			fixed,
+%			fixed zerofill,
+%			precision=1,
+%			/tikz/.cd
+%		},
+%		xlabel=$ N $,
+%		ylabel=$\log\mathcal{L}$,
+%		ylabel shift = -4 pt,
+%		%xticklabel style={rotate=90},
+%		%		ymax=0.35,
+%		xmin=0,
+%		xmax=1000,
+%		%		ytick={0.05,0.10,...,0.35},
+%		xtick={100,300,...,900},
+%		restrict x to domain=0:900,
+%		legend entries={0\% censoring, 5\% censoring, 10\% censoring},
+%		]
+%		\addplot[color=purple,mark=square*,mark size=1.1,thick] table{results/logl_ray_0.txt};
+%		\addplot[color=cyan,mark=*,mark size=1.1,thick] table{results/logl_ray_5.txt};
+%		\addplot[color=orange,mark=triangle*,mark size=1.5,thick] table{results/logl_ray_10.txt};
+%		\end{axis}
+%		\end{tikzpicture}
+%	}\hspace{1cm}
+%	\subfloat[Gompertz distribution]{
+%		\begin{tikzpicture}[trim axis left, trim axis right]
+%		\begin{axis}
+%		[
+%		tiny,
+%		width=0.56\columnwidth,
+%		height=4.5cm,
+%		legend pos=south east,
+%		legend style={font=\scriptsize,nodes={scale=0.75, transform shape}},
+%		grid,
+%		y tick label style={
+%			/pgf/number format/.cd,
+%			fixed,
+%			fixed zerofill,
+%			precision=1,
+%			/tikz/.cd
+%		},
+%		xlabel=$ N $,
+%		%xticklabel style={rotate=90},
+%		ylabel=$\log\mathcal{L}$,
+%		ylabel shift = -4 pt,
+%		%		ymax=0.22,
+%		%		ymin=0.01,
+%		xmin=0,
+%		xmax=1000,
+%		xtick={100,300,...,900},
+%		restrict x to domain=0:900,
+%		%		ytick={0.04,0.07,...,0.21},
+%		legend entries={0\% censoring, 5\% censoring, 10\% censoring},
+%		]
+%		\addplot[color=purple,mark=square*,mark size=1.1,thick] table{results/logl_gom_0.txt};
+%		\addplot[color=cyan,mark=*,mark size=1.1,thick] table{results/logl_gom_5.txt};
+%		\addplot[color=orange,mark=triangle*,mark size=1.5,thick] table{results/logl_gom_10.txt};
+%		\end{axis}
+%		\end{tikzpicture}
+%	}
+%	\caption{\npglm's achieved average log-likelihood on the separate test data vs the number of training samples ($N$) with different censoring ratios.}
+%	\label{fig:syn-logl-n}
+%\end{figure}
 
 \begin{figure}[t]
 	\hfill  
@@ -296,7 +296,7 @@ Finally, we investigated whether censored samples are informative or not. For th
 		[
 		tiny,
 		width=0.56\columnwidth,
-		height=4cm,
+		height=4.5cm,
 		legend pos=north east,
 		legend style={font=\scriptsize,nodes={scale=0.75, transform shape}},
 		grid,
@@ -331,7 +331,7 @@ Finally, we investigated whether censored samples are informative or not. For th
 		[
 		tiny,
 		width=0.56\columnwidth,
-		height=4cm,
+		height=4.5cm,
 		legend pos=north east,
 		legend style={font=\scriptsize,nodes={scale=0.75, transform shape}},
 		grid,
@@ -367,32 +367,62 @@ Finally, we investigated whether censored samples are informative or not. For th
 
 
 \subsection{Experiments on real data}
-We apply \npglm with the proposed feature set on real-world dataset to evaluate its effectiveness and compare its performance in predicting the time of link creation vis-\`a-vis different parametric models. 
+We apply \npglm with the proposed feature set on a number of real-world datasets to evaluate its effectiveness and compare its performance in predicting the relationship building time vis-\`a-vis state-of-the-art models. 
 
 \descr{Dataset.} We have used DBLP bibliographic citation network, provided by \cite{tang2008aminer}, as the real-world dataset which has both attributes of dynamicity and heterogeneity. Based on the publication venue of the papers, we extracted two networks, named \emph{dblp-db} and \emph{dblp-th}, from the original DBLP dataset. The dblp-db is composed of papers which are published in conferences or journals related to Database, Data Mining, Machine Learning, and Artificial Intelligence. Moreover, those papers that are published in venues relative to the theoretical computer science, constitute the dblp-th network. The demographic statistics of both networks is presented in Table~\ref{table:dataset}.
 
 \begin{table}[t]
 	\centering
-	\caption{Properties of DBLP Bibliographic Network}
+	\caption{Demographic Statistics of Real-World Datasets}
 	\label{table:dataset}
 	\scriptsize
-	\begin{tabu} to \columnwidth {X[l] X[l] X[c] X[c]}
+	\begin{tabu} to \columnwidth {l l X[l] X[l] X[r]}
 		\toprule
-		& & \multicolumn{2}{c}{Network} \\
-		\cmidrule(l){3-4}
-		& Property & {dblp-db} & {dblp-th}\\
+		Dataset & Time Span & Entity & Title & Count\\
 		\midrule % In-table horizontal line
-		\multirow{4}{*}{\# Nodes}
-		& $Author$ & 51,486 & 29,542 \\ % Content row 1
-		& $Paper$ & 79,069 & 64,333 \\ % Content row 2
-		& $Venue$ & 19 & 40 \\ % Content row 3
-		& $Term$ & 22,567 & 18,578 \\ % Content row 3
-		\midrule
-		\multirow{4}{*}{\# Relations}
-		& $write$ & 123,343 & 77,783 \\ % Content row 1
-		& $publish$ & 39,965 & 30,732 \\ % Content row 2
-		& $cite$ & 217,037 & 141,215 \\ % Content row 3
-		& $mention$ & 278,257 & 206,735 \\ % Content row 3
+		\multirow{8}{*}{DBLP} & \multirow{8}{2cm}{From 1969 to 2016}
+		& \multirow{4}{*}{Nodes}
+		& $Author$ & 15,929 \\ % Content row 1
+		& & & $Paper$ & 37,077  \\ % Content row 2
+		& & & $Venue$ & 38 \\ % Content row 3
+		& & & $Term$ & 12,028 \\ % Content row 3
+		\cmidrule{3-5}
+		& & \multirow{4}{*}{Links}
+		& write & 100,797 \\ % Content row 1
+		& & & cite & 165,904 \\ % Content row 2
+		& & & publish & 42,872 \\ % Content row 3
+		& & & mention & 284,156 \\ % Content row 3
+		
+		\midrule % In-table horizontal line
+		\multirow{6}{*}{Delicious} & \multirow{6}{2cm}{From May 2006 to Oct 2010}
+		& \multirow{3}{*}{Nodes}
+		& $User$ & 1,714 \\ % Content row 1
+		& & & $Tag$ & 21,956  \\ % Content row 2
+		& & & $Bookmark$ & 30,998 \\ % Content row 3
+		\cmidrule{3-5}
+		& & \multirow{3}{*}{Links}
+		& contact & 15,329 \\ % Content row 1
+		& & & post & 437,594 \\ % Content row 2
+		& & & has-tag & 437,594 \\ % Content row 3
+		
+		\midrule % In-table horizontal line
+		\multirow{13}{*}{MovieLens} & \multirow{13}{2cm}{From Sep 1997 to Jan 2009}
+		& \multirow{7}{*}{Nodes}
+		& $User$ & 1,421 \\ % Content row 1
+		& & & $Movie$ & 5,660  \\ % Content row 2
+		& & & $Actor$ & 6,176 \\ % Content row 3
+		& & & $Director$ & 2,401 \\ % Content row 3
+		& & & $Genre$ & 19 \\ % Content row 3
+		& & & $Tag$ & 5,561 \\ % Content row 3
+		& & & $Country$ & 63 \\ % Content row 3
+		\cmidrule{3-5}
+		& & \multirow{6}{*}{Links}
+		& rate & 855,599 \\ % Content row 1
+		& & & play-in & 231,743 \\ % Content row 2
+		& & & direct & 10,156 \\ % Content row 3
+		& & & has-genre & 20,810 \\ % Content row 3
+		& & & has-tag & 47,958 \\ % Content row 3
+		& & & produced-in & 10,198 \\ % Content row 3
 		\bottomrule % Bottom horizontal line
 	\end{tabu}
 \end{table}
@@ -420,7 +450,7 @@ Here, the obtained results also show that leveraging more historical data to ext
 		[
 		tiny,
 		width=0.56\columnwidth,
-		height=4cm,
+		height=4.5cm,
 		legend pos=north east,
 		legend style={font=\scriptsize,nodes={scale=0.75, transform shape}},
 		grid,
@@ -455,7 +485,7 @@ Here, the obtained results also show that leveraging more historical data to ext
 		[
 		tiny,
 		width=0.56\columnwidth,
-		height=4cm,
+		height=4.5cm,
 		legend pos=north east,
 		legend style={font=\scriptsize,nodes={scale=0.75, transform shape}},
 		grid,
@@ -488,16 +518,17 @@ Here, the obtained results also show that leveraging more historical data to ext
 	\label{fig:syn-mae-c}
 \end{figure}
 
-\begin{figure}[t]
-	\hfill  
-	\subfloat[dblp-db]{
+\begin{figure*}[t]
+\centering
+%\hfill
+	\subfloat[DBLP]{
 		\begin{tikzpicture}[trim axis left, trim axis right]
 		\begin{axis}
 		[
 		tiny,
 		width=0.56\columnwidth,
 		height=4.5cm,
-		legend pos=south east,
+		legend pos=north west,
 		legend style={font=\tiny,nodes={scale=0.75, transform shape}},
 		grid,
 		y tick label style={
@@ -517,23 +548,61 @@ Here, the obtained results also show that leveraging more historical data to ext
 		ytick={0.1,0.2,...,0.9,1.0},
 		xtick={0.5,1.0,...,3},
 %		restrict x to domain=0:900,
-		legend entries={NP-GLM, Exp-GLM, Ray-GLM, Gom-GLM},
+		legend entries={NP-GLM, WBL-GLM, EXP-GLM, RAY-GLM},
 		]
 		\addplot[color=purple,mark=square*,mark size=1.1,thick] table{results/db_np.txt};
-		\addplot[color=cyan,mark=triangle*,mark size=1.1,thick] table{results/db_exp.txt};
-		\addplot[color=orange,mark=*,mark size=1.5,thick] table{results/db_ray.txt};
-		\addplot[color=green,mark=diamond*,mark size=1.5,thick] table{results/db_gom.txt};
+		\addplot[color=cyan,mark=triangle*,mark size=1.1,thick] table{results/db_wbl.txt};
+		\addplot[color=orange,mark=*,mark size=1.5,thick] table{results/db_exp.txt};
+		\addplot[color=green,mark=diamond*,mark size=1.5,thick] table{results/db_ray.txt};
 		\end{axis}
 		\end{tikzpicture}
-	}\hspace{1cm}
-	\subfloat[dblp-th]{
+	}
+\hfil
+	\subfloat[Delicious]{
+	\begin{tikzpicture}[trim axis left, trim axis right]
+	\begin{axis}
+	[
+	tiny,
+	width=0.56\columnwidth,
+	height=4.5cm,
+	legend pos=north west,
+	legend style={font=\tiny,nodes={scale=0.75, transform shape}},
+	grid,
+	y tick label style={
+		/pgf/number format/.cd,
+		fixed,
+		fixed zerofill,
+		precision=1,
+		/tikz/.cd
+	},
+	xlabel=Absolute Error,
+	ylabel=Prediction Accuracy,
+	ylabel shift = -4 pt,
+	%xticklabel style={rotate=90},
+	ymax=1.1,
+	xmin=0,
+	xmax=3.5,
+	ytick={0.1,0.2,...,0.9,1.0},
+	xtick={0.5,1.0,...,3},
+	%		restrict x to domain=0:900,
+	legend entries={NP-GLM, WBL-GLM, EXP-GLM, RAY-GLM},
+	]
+	\addplot[color=purple,mark=square*,mark size=1.1,thick] table{results/dl_np.txt};
+	\addplot[color=cyan,mark=triangle*,mark size=1.1,thick] table{results/dl_wbl.txt};
+	\addplot[color=orange,mark=*,mark size=1.5,thick] table{results/dl_exp.txt};
+	\addplot[color=green,mark=diamond*,mark size=1.5,thick] table{results/dl_ray.txt};
+	\end{axis}
+	\end{tikzpicture}
+	}
+\hfil
+	\subfloat[MovieLens]{
 		\begin{tikzpicture}[trim axis left, trim axis right]
 		\begin{axis}
 		[
 		tiny,
 		width=0.56\columnwidth,
 		height=4.5cm,
-		legend pos=south east,
+		legend pos=north west,
 		legend style={font=\tiny,nodes={scale=0.75, transform shape}},
 		grid,
 		y tick label style={
@@ -553,64 +622,380 @@ Here, the obtained results also show that leveraging more historical data to ext
 		ytick={0.1,0.2,...,0.9,1.0},
 		xtick={0.5,1.0,...,3},
 		%		restrict x to domain=0:900,
-		legend entries={NP-GLM, Exp-GLM, Ray-GLM, Gom-GLM},
+		legend entries={NP-GLM, WBL-GLM, EXP-GLM, RAY-GLM},
 		]
-		\addplot[color=purple,mark=square*,mark size=1.1,thick] table{results/th_np.txt};
-		\addplot[color=cyan,mark=triangle*,mark size=1.1,thick] table{results/th_exp.txt};
-		\addplot[color=orange,mark=*,mark size=1.5,thick] table{results/th_ray.txt};
-		\addplot[color=green,mark=diamond*,mark size=1.5,thick] table{results/th_gom.txt};
+		\addplot[color=purple,mark=square*,mark size=1.1,thick] table{results/mv_np.txt};
+		\addplot[color=cyan,mark=triangle*,mark size=1.1,thick] table{results/mv_wbl.txt};
+		\addplot[color=orange,mark=*,mark size=1.5,thick] table{results/mv_exp.txt};
+		\addplot[color=green,mark=diamond*,mark size=1.5,thick] table{results/mv_ray.txt};
 		\end{axis}
 		\end{tikzpicture}
 	}
-	\caption{Prediction accuracy of different methods vs the maximum tolerated absolute error with $\Phi=10$ and $\Omega=6$.}
+	\caption{Prediction accuracy of different methods vs the maximum tolerated absolute error on different datasets.}
 	\label{fig:real}
-\end{figure}
+\end{figure*}
 
 In the final experiment, we investigated for what fraction of test samples a model can have a lower prediction error than a threshold. In other words, to evaluate the prediction accuracy of a model, we record the fraction of test samples for which the difference between their true times and the predicted ones are lower than a given threshold, called \emph{tolerated error}. To this end, we again used the median as the predicted value by all models that were trained using our dynamic features. The feature extraction and observation windows were set to 10 and 6, respectively, and the results for different tolerated errors in range $\{0.5, 1.0, \dots, 3.0\}$ were plotted in Fig~\ref{fig:real}. The result demonstrates that \npglm can achieve a higher accuracy in all cases relative to other baselines, especially when dealing with lower tolerated errors.
 
-\begin{table*}[t]
+%\begin{table*}[t]
+%	\centering
+%	\caption{Performance Comparison of Different Methods Under Different Lengths for Observation Window when $\Phi=10$}
+%	\label{table:results}
+%	\scriptsize
+%	\begin{tabu} to \textwidth {X[l] c l X[c] X[c] c X[c] X[c] c X[c] X[c]}
+%		\toprule
+%		& & 
+%		& \multicolumn{2}{c}{$\Omega=3$} & & \multicolumn{2}{c}{$\Omega=6$} & & \multicolumn{2}{c}{$\Omega=9$}\\
+%		\cmidrule(l){4-5} \cmidrule{7-8} \cmidrule{10-11}
+%		%\cmidrule(l){2-3} \cmidrule{5-7}
+%		Dataset & Feature &
+%		Model & MAE & MRE & & MAE & MRE & & MAE & MRE\\
+%		\midrule
+%		\multirow{8}{*}{dblp-db}
+%		& \multirow{4}{*}{\rotatebox{90}{Dynamic}}
+%		& \npglm & $\bm{0.21\pm0.02}$ & $\bm{0.16\pm0.07}$ & & $\bm{0.76\pm0.05}$ & $\bm{0.34\pm0.03}$ & & $\bm{1.10\pm0.09}$ & $\bm{0.43\pm0.02}$ \\
+%		& & \textsc{Exp-Glm} & $0.27\pm0.09$ & $0.20\pm0.02$ & & $0.83\pm0.09$ & $0.43\pm0.06$ & & $1.39\pm0.04$ & $0.66\pm0.01$ \\
+%		& & \textsc{Ray-Glm} & $0.40\pm0.04$ & $0.32\pm0.05$ & & $1.90\pm0.06$ & $1.00\pm0.09$ & & $2.56\pm0.01$ & $1.60\pm0.02$ \\
+%		& & \textsc{Gom-Glm} & $0.38\pm0.09$ & $0.32\pm0.09$ & & $1.89\pm0.07$ & $1.23\pm0.02$ & & $3.30\pm0.07$ & $2.03\pm0.01$ \\
+%		
+%		\cmidrule{2-11}
+%		& \multirow{4}{*}{\rotatebox{90}{Static}}
+%		& \npglm & $0.27\pm0.01$ & $0.20\pm0.01$ & & $0.85\pm0.03$ & $0.45\pm0.02$ & & $1.32\pm0.07$ & $0.56\pm0.02$ \\
+%		& & \textsc{Exp-Glm} & $0.33\pm0.01$ & $0.24\pm0.01$ & & $0.93\pm0.03$ & $0.51\pm0.02$ & & $1.54\pm0.06$ & $0.74\pm0.05$ \\
+%		& & \textsc{Ray-Glm} & $0.48\pm0.02$ & $0.37\pm0.02$ & & $2.16\pm0.06$ & $1.30\pm0.04$ & & $3.37\pm0.12$ & $1.84\pm0.11$ \\
+%		& & \textsc{Gom-Glm} & $0.48\pm0.01$ & $0.36\pm0.01$ & & $2.28\pm0.02$ & $1.37\pm0.03$ & & $4.24\pm0.10$ & $2.28\pm0.06$ \\
+%		
+%		\midrule
+%		\multirow{8}{*}{dblp-th}
+%		& \multirow{4}{*}{\rotatebox{90}{Dynamic}}
+%		& \npglm & $\bm{0.22\pm0.03}$ & $\bm{0.17\pm0.08}$ & & $\bm{0.75\pm0.09}$ & $\bm{0.36\pm0.02}$ & & $\bm{1.06\pm0.09}$ & $\bm{0.47\pm0.08}$ \\
+%		& & \textsc{Exp-Glm} & $0.30\pm0.03$ & $0.19\pm0.07$ & & $0.75\pm0.09$ & $0.43\pm0.06$ & & $1.37\pm0.03$ & $0.60\pm0.02$ \\
+%		& & \textsc{Ray-Glm} & $0.41\pm0.01$ & $0.34\pm0.01$ & & $1.83\pm0.06$ & $1.11\pm0.02$ & & $3.01\pm0.07$ & $1.56\pm0.04$ \\
+%		& & \textsc{Gom-Glm} & $0.38\pm0.06$ & $0.30\pm0.09$ & & $1.88\pm0.05$ & $1.23\pm0.02$ & & $3.97\pm0.06$ & $2.14\pm0.02$ \\
+%		
+%		\cmidrule{2-11}
+%		& \multirow{4}{*}{\rotatebox{90}{Static}}
+%		& \npglm & $0.28\pm0.01$ & $0.21\pm0.01$ & & $0.89\pm0.04$ & $0.47\pm0.02$ & & $1.37\pm0.07$ & $0.57\pm0.03$ \\
+%		& & \textsc{Exp-Glm} & $0.34\pm0.02$ & $0.25\pm0.02$ & & $0.98\pm0.03$ & $0.54\pm0.02$ & & $1.59\pm0.07$ & $0.77\pm0.04$ \\
+%		& & \textsc{Ray-Glm} & $0.50\pm0.03$ & $0.39\pm0.02$ & & $2.26\pm0.07$ & $1.36\pm0.05$ & & $3.54\pm0.13$ & $1.92\pm0.08$ \\
+%		& & \textsc{Gom-Glm} & $0.50\pm0.01$ & $0.38\pm0.02$ & & $2.38\pm0.06$ & $1.43\pm0.07$ & & $4.41\pm0.14$ & $2.40\pm0.07$ \\
+%		
+%		\bottomrule
+%	\end{tabu}
+%\end{table*}
+
+\begin{figure}[t]
 	\centering
-	\caption{Performance Comparison of Different Methods Under Different Lengths for Observation Window when $\Phi=10$}
-	\label{table:results}
-	\scriptsize
-	\begin{tabu} to \textwidth {X[l] c l X[c] X[c] c X[c] X[c] c X[c] X[c]}
-		\toprule
-		& & 
-		& \multicolumn{2}{c}{$\Omega=3$} & & \multicolumn{2}{c}{$\Omega=6$} & & \multicolumn{2}{c}{$\Omega=9$}\\
-		\cmidrule(l){4-5} \cmidrule{7-8} \cmidrule{10-11}
-		%\cmidrule(l){2-3} \cmidrule{5-7}
-		Dataset & Feature &
-		Model & MAE & MRE & & MAE & MRE & & MAE & MRE\\
-		\midrule
-		\multirow{8}{*}{dblp-db}
-		& \multirow{4}{*}{\rotatebox{90}{Dynamic}}
-		& \npglm & $\bm{0.21\pm0.02}$ & $\bm{0.16\pm0.07}$ & & $\bm{0.76\pm0.05}$ & $\bm{0.34\pm0.03}$ & & $\bm{1.10\pm0.09}$ & $\bm{0.43\pm0.02}$ \\
-		& & \textsc{Exp-Glm} & $0.27\pm0.09$ & $0.20\pm0.02$ & & $0.83\pm0.09$ & $0.43\pm0.06$ & & $1.39\pm0.04$ & $0.66\pm0.01$ \\
-		& & \textsc{Ray-Glm} & $0.40\pm0.04$ & $0.32\pm0.05$ & & $1.90\pm0.06$ & $1.00\pm0.09$ & & $2.56\pm0.01$ & $1.60\pm0.02$ \\
-		& & \textsc{Gom-Glm} & $0.38\pm0.09$ & $0.32\pm0.09$ & & $1.89\pm0.07$ & $1.23\pm0.02$ & & $3.30\pm0.07$ & $2.03\pm0.01$ \\
-		
-		\cmidrule{2-11}
-		& \multirow{4}{*}{\rotatebox{90}{Static}}
-		& \npglm & $0.27\pm0.01$ & $0.20\pm0.01$ & & $0.85\pm0.03$ & $0.45\pm0.02$ & & $1.32\pm0.07$ & $0.56\pm0.02$ \\
-		& & \textsc{Exp-Glm} & $0.33\pm0.01$ & $0.24\pm0.01$ & & $0.93\pm0.03$ & $0.51\pm0.02$ & & $1.54\pm0.06$ & $0.74\pm0.05$ \\
-		& & \textsc{Ray-Glm} & $0.48\pm0.02$ & $0.37\pm0.02$ & & $2.16\pm0.06$ & $1.30\pm0.04$ & & $3.37\pm0.12$ & $1.84\pm0.11$ \\
-		& & \textsc{Gom-Glm} & $0.48\pm0.01$ & $0.36\pm0.01$ & & $2.28\pm0.02$ & $1.37\pm0.03$ & & $4.24\pm0.10$ & $2.28\pm0.06$ \\
-		
-		\midrule
-		\multirow{8}{*}{dblp-th}
-		& \multirow{4}{*}{\rotatebox{90}{Dynamic}}
-		& \npglm & $\bm{0.22\pm0.03}$ & $\bm{0.17\pm0.08}$ & & $\bm{0.75\pm0.09}$ & $\bm{0.36\pm0.02}$ & & $\bm{1.06\pm0.09}$ & $\bm{0.47\pm0.08}$ \\
-		& & \textsc{Exp-Glm} & $0.30\pm0.03$ & $0.19\pm0.07$ & & $0.75\pm0.09$ & $0.43\pm0.06$ & & $1.37\pm0.03$ & $0.60\pm0.02$ \\
-		& & \textsc{Ray-Glm} & $0.41\pm0.01$ & $0.34\pm0.01$ & & $1.83\pm0.06$ & $1.11\pm0.02$ & & $3.01\pm0.07$ & $1.56\pm0.04$ \\
-		& & \textsc{Gom-Glm} & $0.38\pm0.06$ & $0.30\pm0.09$ & & $1.88\pm0.05$ & $1.23\pm0.02$ & & $3.97\pm0.06$ & $2.14\pm0.02$ \\
-		
-		\cmidrule{2-11}
-		& \multirow{4}{*}{\rotatebox{90}{Static}}
-		& \npglm & $0.28\pm0.01$ & $0.21\pm0.01$ & & $0.89\pm0.04$ & $0.47\pm0.02$ & & $1.37\pm0.07$ & $0.57\pm0.03$ \\
-		& & \textsc{Exp-Glm} & $0.34\pm0.02$ & $0.25\pm0.02$ & & $0.98\pm0.03$ & $0.54\pm0.02$ & & $1.59\pm0.07$ & $0.77\pm0.04$ \\
-		& & \textsc{Ray-Glm} & $0.50\pm0.03$ & $0.39\pm0.02$ & & $2.26\pm0.07$ & $1.36\pm0.05$ & & $3.54\pm0.13$ & $1.92\pm0.08$ \\
-		& & \textsc{Gom-Glm} & $0.50\pm0.01$ & $0.38\pm0.02$ & & $2.38\pm0.06$ & $1.43\pm0.07$ & & $4.41\pm0.14$ & $2.40\pm0.07$ \\
-		
-		\bottomrule
-	\end{tabu}
-\end{table*}
+	\hfill
+	\subfloat[Mean Absolute Error]{
+		\begin{tikzpicture}[trim axis left, trim axis right]
+		\begin{axis}
+		[
+		tiny,
+		width=0.56\columnwidth,
+		height=4.5cm,
+		legend pos=north east,
+		legend style={font=\tiny,nodes={scale=0.75, transform shape}},
+		grid,
+		y tick label style={
+			/pgf/number format/.cd,
+			fixed,
+			fixed zerofill,
+			precision=1,
+			/tikz/.cd
+		},
+		xlabel=\# Snapshots,
+		ylabel=MAE,
+		ylabel shift = -4 pt,
+		%xticklabel style={rotate=90},
+%		ymax=1.1,
+		xmin=0,
+		xmax=21,
+%		ytick={0.1,0.2,...,0.9,1.0},
+		xtick={3,6,...,18},
+		%		restrict x to domain=0:900,
+		legend entries={NP-GLM, WBL-GLM},
+		]
+		\addplot[color=purple,mark=square*,mark size=1.1,thick] table{results/dl_snap_mae_np.txt};
+		\addplot[color=cyan,mark=triangle*,mark size=1.1,thick] table{results/dl_snap_mae_wbl.txt};
+		\end{axis}
+		\end{tikzpicture}
+	}
+	\hfill
+	\subfloat[Concordance Index]{
+		\begin{tikzpicture}[trim axis left, trim axis right]
+		\begin{axis}
+		[
+		tiny,
+		width=0.56\columnwidth,
+		height=4.5cm,
+		legend pos=north west,
+		legend style={font=\tiny,nodes={scale=0.75, transform shape}},
+		grid,
+		y tick label style={
+			/pgf/number format/.cd,
+			fixed,
+			fixed zerofill,
+			precision=1,
+			/tikz/.cd
+		},
+		xlabel=\# Snapshots,
+		ylabel=CI,
+		ylabel shift = -4 pt,
+		%xticklabel style={rotate=90},
+		%		ymax=1.1,
+		xmin=0,
+%		xmax=3.5,
+		%		ytick={0.1,0.2,...,0.9,1.0},
+		xtick={3,6,...,18},
+		%		restrict x to domain=0:900,
+		legend entries={NP-GLM, WBL-GLM},
+		]
+		\addplot[color=purple,mark=square*,mark size=1.1,thick] table{results/dl_snap_ci_np.txt};
+		\addplot[color=cyan,mark=triangle*,mark size=1.1,thick] table{results/dl_snap_ci_wbl.txt};
+		\end{axis}
+		\end{tikzpicture}
+	}
+	\caption{Effect of choosing different number of snapshots on performance of different methods using Delicious dataset.}
+	\label{fig:delta:delicious}
+\end{figure}
+
+
+\begin{figure}[t]
+	\centering
+	\hfill
+	\subfloat[Mean Absolute Error]{
+		\begin{tikzpicture}[trim axis left, trim axis right]
+		\begin{axis}
+		[
+		tiny,
+		width=0.56\columnwidth,
+		height=4.5cm,
+		legend pos=north east,
+		legend style={font=\tiny,nodes={scale=0.75, transform shape}},
+		grid,
+		y tick label style={
+			/pgf/number format/.cd,
+			fixed,
+			fixed zerofill,
+			precision=1,
+			/tikz/.cd
+		},
+		xlabel=\# Snapshots,
+		ylabel=MAE,
+		ylabel shift = -4 pt,
+		%xticklabel style={rotate=90},
+%				ymax=18,ymin=10,
+		xmin=0,
+%		xmax=3.5,
+		%		ytick={0.1,0.2,...,0.9,1.0},
+		xtick={3,6,...,18},
+		%		restrict x to domain=0:900,
+		legend entries={NP-GLM, WBL-GLM},
+		]
+		\addplot[color=purple,mark=square*,mark size=1.1,thick] table{results/mv_snap_mae_np.txt};
+		\addplot[color=cyan,mark=triangle*,mark size=1.1,thick] table{results/mv_snap_mae_wbl.txt};
+		\end{axis}
+		\end{tikzpicture}
+	}
+	\hfill
+	\subfloat[Concordance Index]{
+		\begin{tikzpicture}[trim axis left, trim axis right]
+		\begin{axis}
+		[
+		tiny,
+		width=0.56\columnwidth,
+		height=4.5cm,
+		legend pos=north west,
+		legend style={font=\tiny,nodes={scale=0.75, transform shape}},
+		grid,
+		y tick label style={
+			/pgf/number format/.cd,
+			fixed,
+			fixed zerofill,
+			precision=1,
+			/tikz/.cd
+		},
+		xlabel=\# Snapshots,
+		ylabel=CI,
+		ylabel shift = -4 pt,
+		%xticklabel style={rotate=90},
+				ymax=0.9,ymin=0.2,
+		xmin=0,
+%		xmax=3.5,
+		%		ytick={0.1,0.2,...,0.9,1.0},
+		xtick={3,6,...,18},
+		%		restrict x to domain=0:900,
+		legend entries={NP-GLM, WBL-GLM},
+		]
+		\addplot[color=purple,mark=square*,mark size=1.1,thick] table{results/mv_snap_ci_np.txt};
+		\addplot[color=cyan,mark=triangle*,mark size=1.1,thick] table{results/mv_snap_ci_wbl.txt};
+		\end{axis}
+		\end{tikzpicture}
+	}
+	\caption{Effect of choosing different number of snapshots on performance of different methods using MovieLens dataset.}
+	\label{fig:delta:MovieLens}
+\end{figure}
+
+
+
+
+
+
+
+
+
+
+\begin{figure}[t]
+	\centering
+	\hfill
+	\subfloat[Mean Absolute Error]{
+		\begin{tikzpicture}[trim axis left, trim axis right]
+		\begin{axis}
+		[
+		tiny,
+		width=0.56\columnwidth,
+		height=4.5cm,
+		legend pos=north east,
+		legend style={font=\tiny,nodes={scale=0.75, transform shape}},
+		grid,
+		y tick label style={
+			/pgf/number format/.cd,
+			fixed,
+			fixed zerofill,
+			precision=1,
+			/tikz/.cd
+		},
+		xlabel=$\Delta$,
+		ylabel=MAE,
+		ylabel shift = -4 pt,
+		%xticklabel style={rotate=90},
+		%		ymax=1.1,
+		xmin=0,
+		xmax=3.5,
+		%		ytick={0.1,0.2,...,0.9,1.0},
+		xtick={0.5,1.0,...,3},
+		%		restrict x to domain=0:900,
+		legend entries={NP-GLM, WBL-GLM},
+		]
+		\addplot[color=purple,mark=square*,mark size=1.1,thick] table{results/delta_mae_np.txt};
+		\addplot[color=cyan,mark=triangle*,mark size=1.1,thick] table{results/delta_mae_wbl.txt};
+		\end{axis}
+		\end{tikzpicture}
+	}
+	\hfill
+	\subfloat[Concordance Index]{
+		\begin{tikzpicture}[trim axis left, trim axis right]
+		\begin{axis}
+		[
+		tiny,
+		width=0.56\columnwidth,
+		height=4.5cm,
+		legend pos=north west,
+		legend style={font=\tiny,nodes={scale=0.75, transform shape}},
+		grid,
+		y tick label style={
+			/pgf/number format/.cd,
+			fixed,
+			fixed zerofill,
+			precision=1,
+			/tikz/.cd
+		},
+		xlabel=$\Delta$,
+		ylabel=CI,
+		ylabel shift = -4 pt,
+		%xticklabel style={rotate=90},
+		%		ymax=1.1,
+		xmin=0,
+		xmax=3.5,
+		%		ytick={0.1,0.2,...,0.9,1.0},
+		xtick={0.5,1.0,...,3},
+		%		restrict x to domain=0:900,
+		legend entries={NP-GLM, WBL-GLM},
+		]
+		\addplot[color=purple,mark=square*,mark size=1.1,thick] table{results/delta_ci_np.txt};
+		\addplot[color=cyan,mark=triangle*,mark size=1.1,thick] table{results/delta_ci_wbl.txt};
+		\end{axis}
+		\end{tikzpicture}
+	}
+	\caption{Effect of choosing different values for $\Delta$ on performance of different methods using Delicious dataset.}
+	\label{fig:snaps:delicious}
+\end{figure}
+
+
+\begin{figure}[t]
+	\centering
+	\hfill
+	\subfloat[Mean Absolute Error]{
+		\begin{tikzpicture}[trim axis left, trim axis right]
+		\begin{axis}
+		[
+		tiny,
+		width=0.56\columnwidth,
+		height=4.5cm,
+		legend pos=north east,
+		legend style={font=\tiny,nodes={scale=0.75, transform shape}},
+		grid,
+		y tick label style={
+			/pgf/number format/.cd,
+			fixed,
+			fixed zerofill,
+			precision=1,
+			/tikz/.cd
+		},
+		xlabel=$\Delta$,
+		ylabel=MAE,
+		ylabel shift = -4 pt,
+		%xticklabel style={rotate=90},
+		ymax=18,ymin=10,
+		xmin=0,
+		xmax=3.5,
+		%		ytick={0.1,0.2,...,0.9,1.0},
+		xtick={0.5,1.0,...,3},
+		%		restrict x to domain=0:900,
+		legend entries={NP-GLM, WBL-GLM},
+		]
+		\addplot[color=purple,mark=square*,mark size=1.1,thick] table{results/mv_delta_mae_np.txt};
+		\addplot[color=cyan,mark=triangle*,mark size=1.1,thick] table{results/mv_delta_mae_wbl.txt};
+		\end{axis}
+		\end{tikzpicture}
+	}
+	\hfill
+	\subfloat[Concordance Index]{
+		\begin{tikzpicture}[trim axis left, trim axis right]
+		\begin{axis}
+		[
+		tiny,
+		width=0.56\columnwidth,
+		height=4.5cm,
+		legend pos=north west,
+		legend style={font=\tiny,nodes={scale=0.75, transform shape}},
+		grid,
+		y tick label style={
+			/pgf/number format/.cd,
+			fixed,
+			fixed zerofill,
+			precision=1,
+			/tikz/.cd
+		},
+		xlabel=$\Delta$,
+		ylabel=CI,
+		ylabel shift = -4 pt,
+		%xticklabel style={rotate=90},
+		ymax=0.9,ymin=0.2,
+		xmin=0,
+		xmax=3.5,
+		%		ytick={0.1,0.2,...,0.9,1.0},
+		xtick={0.5,1.0,...,3},
+		%		restrict x to domain=0:900,
+		legend entries={NP-GLM, WBL-GLM},
+		]
+		\addplot[color=purple,mark=square*,mark size=1.1,thick] table{results/mv_delta_ci_np.txt};
+		\addplot[color=cyan,mark=triangle*,mark size=1.1,thick] table{results/mv_delta_ci_wbl.txt};
+		\end{axis}
+		\end{tikzpicture}
+	}
+	\caption{Effect of choosing different values for $\Delta$ on performance of different methods using MovieLens dataset.}
+	\label{fig:snaps:MovieLens}
+\end{figure}
+
