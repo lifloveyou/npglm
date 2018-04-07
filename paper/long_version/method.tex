@@ -22,12 +22,12 @@
 
 \section{Proposed Non-Parametric Model}\label{sec:method}
 In this section we introduce our proposed model, called \emph{Non-Parametric Generalized Linear Model}, to solve the problem of continuous-time relationship prediction based on the extracted features. 
-Since the relationship building time is treated as a continuous random variable, we attempt to model the probability distribution of this time, given the features of the target relationship. Thus, if we denote the target relationship building time by $t$ and its features by $\mb{x}$, our aim is to model the probability distribution $f_T(t\mid \mb{x})$. A conventional approach to modeling this distribution is to fix a parametric distribution for $t$ (e.g. Exponential distribution) and then relate $\mb{x}$ to $t$ using a Generalized Linear Model \cite{sun2012will}. The major drawback of this approach is that we need to know the exact distribution of the relationship building time, or at least, we could guess the best one that fits. The alternative way that we follow is to learn the shape of $f_T(t\mid \mb{x})$ from the data using a non-parametric solution.
+Since the relationship building time is treated as a continuous random variable, we attempt to model the probability distribution of this time, given the features of the target relationship. Thus, if we denote the target relationship building time by $t$ and its features by $\mb{x}$, our aim is to model the probability density function $f_T(t\mid \mb{x})$. A conventional approach to modeling this function is to fix a parametric distribution for $t$ (e.g. Exponential distribution) and then relate $\mb{x}$ to $t$ using a Generalized Linear Model \cite{sun2012will}. The major drawback of this approach is that we need to know the exact distribution of the relationship building time, or at least, we could guess the best one that fits. The alternative way that we follow is to learn the shape of $f_T(t\mid \mb{x})$ from the data using a non-parametric solution.
 
 In the rest of this section, we first bring the necessary theoretical backgrounds related to the concept, then we go through the details of the proposed model. At the end, we explain the learning and inference algorithms of \npglm.
 
 \subsection{Background}
-Here we define some essential concepts that are necessary to study before we proceed to the proposed model. Generally, the formation of a relationship between two nodes in the network can simply be considered as an event with its occurring time as a random variable $T$ coming from a density function $f_T(t)$. Regarding this, we can have the following definitions:
+Here we define some essential concepts that are necessary to study before we proceed to the proposed model. Generally, the formation of a relationship between two nodes in a network can simply be considered as an event with its occurring time as a random variable $T$ coming from a density function $f_T(t)$. Regarding this, we can have the following definitions:
 
 \begin{definition}[Survival Function]
 	Given the density $f_T(t)$, the survival function denoted by $S(t)$, is the probability that an event occurs after a certain value of $t$, which means:
@@ -56,16 +56,16 @@ The relations between density, survival, and intensity functions come directly f
 \lambda(t)=\frac{f_T(t)}{S(t)}
 \end{equation}
 \begin{equation}\label{eq:reliability}
-S(t)=\exp(-\Lambda(t)dt)
+S(t)=\exp(-\Lambda(t))
 \end{equation}
 \begin{equation}\label{eq:density}
 f_T(t)=\lambda(t)\exp(-\Lambda(t))
 \end{equation}
 
-Table \ref{table:dists} shows the density, reliability, intensity, and cumulative intensity functions of some widely-used distributions for event time modeling.
+Table \ref{table:dists} shows the density, survival, intensity, and cumulative intensity functions of some widely-used distributions for event time modeling.
 
 \subsection{Model Description}
-Looking at the Eq.~\ref{eq:intensity}, we see that the density function can be specified uniquely with its intensity function. Since the intensity function often has a simpler form than the density itself, if we learn the shape of the intensity function, then we can infer the entire distribution eventually. Therefore, we focus on learning the shape of the conditional intensity function $\lambda(t\mid \mb{x})$ from the data, and then accordingly infer the conditional density function $f_T(t\mid \mb{x})$ based on the learned intensity.
+Looking at Eq.~\ref{eq:intensity}, we see that the density function can be specified uniquely with its intensity function. Since the intensity function often has a simpler form than the density itself, if we learn the shape of the intensity function, then we can infer the entire distribution eventually. Therefore, we focus on learning the shape of the conditional intensity function $\lambda(t\mid \mb{x})$ from the data, and then accordingly infer the conditional density function $f_T(t\mid \mb{x})$ based on the learned intensity.
 In order to reduce the hypothesis space of the problem and avoid the curse of dimensionality, we assume that $\lambda(t\mid \mb{x})$, which is a function of both $t$ and $\mb{x}$, can be factorized into two separate positive functions as the following:
 \begin{equation}\label{eq:lambda}
 \lambda(t\mid \mb{x})=g(\mb{w}^T\mb{x})h(t)

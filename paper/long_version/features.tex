@@ -52,11 +52,11 @@ Those pairs of nodes that act as the starting and ending nodes of the relationsh
 		\multirow{8}{*}{\rotatebox{90}{DBLP}} 
 		&&\\
 		& $A\rightarrow P\leftarrow A$ & Authors co-write a paper\\
-		& $A\rightarrow P\rightarrow A\leftarrow P\leftarrow A$ & Authors have common co-authors\\
-		& $A\rightarrow P\rightarrow V\leftarrow P\leftarrow A$ & Authors publish in the same venues\\
-		& $A\rightarrow P\rightarrow T\leftarrow P\leftarrow A$ & Authors use the same terms\\
-		& $A\rightarrow P\rightarrow P\leftarrow P\leftarrow A$ & Authors cite the same papers\\
-		& $A\rightarrow P\leftarrow P\rightarrow P\leftarrow A$ & Authors are cited by the same papers\\
+		& $A\rightarrow P\rightarrow A\leftarrow P\leftarrow A$ & Authors have common co-author\\
+		& $A\rightarrow P\rightarrow V\leftarrow P\leftarrow A$ & Authors publish in the same venue\\
+		& $A\rightarrow P\rightarrow T\leftarrow P\leftarrow A$ & Authors use the same term\\
+		& $A\rightarrow P\rightarrow P\leftarrow P\leftarrow A$ & Authors cite the same paper\\
+		& $A\rightarrow P\leftarrow P\rightarrow P\leftarrow A$ & Authors are cited by the same paper\\
 		&&\\
 		\midrule
 		\multirow{5}{*}{\rotatebox{90}{Delicious}} 
@@ -66,7 +66,7 @@ Those pairs of nodes that act as the starting and ending nodes of the relationsh
 		& $U\rightarrow B\rightarrow T\leftarrow B\leftarrow U$ & Users post bookmarks with the same tag\\
 		&&\\
 		\midrule
-		\multirow{13}{*}{\rotatebox{90}{Movielens}} 
+		\multirow{13}{*}{\rotatebox{90}{MovieLens}} 
 		&&\\
 		& $M\rightarrow A\leftarrow M$ & Movies share an actor\\
 		& $M\rightarrow C\leftarrow M$ & Movies belong to the same country\\
@@ -114,7 +114,7 @@ As an example in DBLP bibliographic network, for the target relation we use $A\r
 After specifying the suitable meta-paths, we need a method to quantify them as features. Here, due to the dynamicity of the network, different links are emerging and vanishing from the network over time. Therefore, the quantifying method must handle this dynamicity. Here, we formally define \emph{Time-Aware Meta-Path-based Features}:
 
 \begin{definition}[Time-Aware Meta-Path-based Feature]
-	Suppose that we are given a dynamic heterogeneous network $G^{t_0,t_1}$ along with its network schema $\mc{S}_G=(\mc{V}, \mc{E})$, and a target Relation $A\rightsquigarrow B$. For a given pair of nodes $a\in A$ and $b\in B$, and a meta-path $\Psi=\nu_1\xrightarrow{\varepsilon_1}\nu_2\xrightarrow{\varepsilon_2}\dots\nu_{k-1}\xrightarrow{\varepsilon_{k-1}}\nu_k$ defined on $\mc{S}_G$, the time-aware meta-path-based feature at the timestamp $\tau$ is calculated as:
+	Suppose that we are given a dynamic heterogeneous network $G^{\tau}$ along with its network schema $\mc{S}_G=(\mc{V}, \mc{E})$, and a target Relation $A\rightsquigarrow B$. For a given pair of nodes $a\in A$ and $b\in B$, and a meta-path $\Psi=\nu_1\xrightarrow{\varepsilon_1}\nu_2\xrightarrow{\varepsilon_2}\dots\nu_{k-1}\xrightarrow{\varepsilon_{k-1}}\nu_k$ defined on $\mc{S}_G$, the time-aware meta-path-based feature at the timestamp $\tau$ is calculated as:
 	\begin{equation}
 		\begin{split}
 			&f_{\Psi}^\tau(a,b)=I(a,A)I(b,B)\\
@@ -149,9 +149,9 @@ By using the above definition, we will be able to quantify the number of instanc
 	\end{equation}
 \end{definition}
 
-For each unique meta-path designed using the triple building blocks described before, we get a unique time series. Form these time series, If we put the values of the same time step into vectors, we will get a multivariate time series where each time step is vector valued. For example, if we have $d$ meta-path $\Psi_1$ to $\Psi_d$, then each time step of the resulting time series will be of the form $\mb{x}^i=[x_{\Psi_1}^i,\dots,x_{\Psi_d}^i]^T$. Such multivariate time series reflect how topological features between two nodes change across different snapshots of the network. Based on the level of the network dynamicity, it can capture increasing/decreasing trends or even periodic/re-occurring patterns.
+For each unique meta-path designed using the triple building blocks described before, we get a unique time series. For each time step, we put the corresponding values from all time series into a vector. Consequently, we get a multivariate time series where each time step is vector-valued. For example, if we have $d$ meta-paths $\Psi_1$ to $\Psi_d$, then each time step of the resulting time series will be of the form $\mb{x}^i=[x_{\Psi_1}^i,\dots,x_{\Psi_d}^i]^T$. Such multivariate time series reflect how topological features between two nodes change across different snapshots of the network. Based on the level of the network dynamicity, it can capture increasing/decreasing trends or even periodic/re-occurring patterns.
 
-Now it's the time to convert this multivariate time series into a single feature vector so that we can use it as the input of our non-parametric model to be discussed in the next section. A trivial solution would be to stack all vectors of the multivariate time series into a single one, and feed our model with this single vector. However, this approach will result in a very high dimensional vector as the number of time steps increases, and can lead to difficulties in the learning procedure due to the curse of dimensionality. This is in contrast with our expectation that more time steps means more information about the history of the network and should result in a better prediction model. To overcome this problem, we combine the power of recurrent neural networks, especially Long Short Term Memory (LSTM) units, which have proven to be very successful in handling time series and sequential data, and autoencoders, which are widely used to learn alternative representations of the data such that the learned representation can reconstruct the original input.
+Now it's the time to convert this multivariate time series into a single feature vector so that we can use it as the input of our non-parametric model that is discussed in the next section. A trivial solution would be to stack all vectors of the multivariate time series into a single one, and feed our model with this single vector. However, this approach will result in a very high dimensional vector as the number of time steps increases, and can lead to difficulties in the learning procedure due to the curse of dimensionality. This is in contrast with our expectation that more time steps means more information about the history of the network and should result in a better prediction model. To overcome this problem, we combine the power of recurrent neural networks, especially Long Short Term Memory (LSTM) units \cite{hochreiter1997long}, which have proven to be very successful in handling time series and sequential data, and autoencoders \cite{bengio2009learning}, which are widely used to learn alternative representations of the data such that the learned representation can reconstruct the original input.
 
 \begin{figure}
 	\centering
@@ -209,6 +209,6 @@ Now it's the time to convert this multivariate time series into a single feature
 	\label{fig:autoencoder}
 \end{figure}
 
-Inspired by the work of Dai and Le on semi-supervised sequence learning \cite{dai2015semi}, we design an LSTM autoencoder which takes a multivariate time series as input, and tries to encode it to a latent representation, so that it can then predict the input time series from the learned vector. The architecture of such autoencoder is illustrated in Fig~\ref{fig:autoencoder}. The benefits of using this autoencoder is two-fold: (1) since the autoencoder can reconstruct the original time series, which reflects the temporal dynamics of the network, we get minimum information loss in the learned vector; and (2) as we can set the dimensionality of the encoded vector to any desired value, we can evade the curse of dimensionality. 
+Inspired by the work of Dai and Le on semi-supervised sequence learning \cite{dai2015semi}, we design an LSTM autoencoder which takes a multivariate time series as input, and tries to encode it to a latent representation, so that it can then predict the input time series from the learned vector. The architecture of such autoencoder is illustrated in Fig~\ref{fig:autoencoder}. The benefits of using this autoencoder is two-fold: (1) since the autoencoder can reconstruct the original time series, which reflects the temporal dynamics of the network, we get minimum information loss in the learned vector; and (2) as we can set the dimensionality of the encoded vector to any desired value, we can evade the curse of dimensionality. We explain our proposed non-parametric model in the next section that takes this learned representation as the feature vector $\mb{x}$ and attempts to predict the corresponding time $t$. 
 
 
