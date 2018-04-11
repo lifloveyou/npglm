@@ -1,0 +1,632 @@
+\section{Experiments on Real Data}\label{sec:results}
+
+We apply \npglm with the proposed feature set on a number of real-world datasets to evaluate its effectiveness and compare its performance in predicting the relationship building time vis-\`a-vis state of the art models. 
+
+\subsection{Datasets}
+\subsubsection{DBLP}
+We use DBLP bibliographic citation network, provided by \cite{tang2008aminer}, which has both attributes of dynamicity and heterogeneity. The network contains four types of objects: authors, papers, venues, and terms. The network schema of this dataset is depicted in Fig~\ref{fig:schema:dblp}. Each paper is associated with a publication date, with a granularity of one year. Based on the publication venue of the papers, we limited the original DBLP dataset to those papers that are published in venues relative to the theoretical computer science. This resulted in having about 16k authors and 37k papers published from 1969 to 2016 in 38 venues. 
+
+\subsubsection{Delicious}
+Another dynamic and heterogeneous dataset we use in our experiments is the Delicious bookmarking dataset from \cite{Cantador:RecSys2011}, with a network schema presented in Fig~\ref{fig:schema:delicious}. It contains three types of objects, namely users, bookmarks, and tags, whose numbers are about 1.7k, 31k, and 22k, respectively. The dataset includes bookmarking timestamps from May 2006 to October 2010.
+
+\subsubsection{MovieLens}
+The third heterogeneous dataset with dynamic characteristics has been extracted from MovieLens personalized movie recommendation website, provided by \cite{harper2015}. The dataset comprises seven types of objects, that are users, movies, tags, genres, actors, directors, and countries, as illustrated by the network schema in the Fig~\ref{fig:schema:movielens}. It contains about 1.4k users and 5.6k movies, with user-movie rating timestamps ranging from September 1997 to January 2009.
+
+The demographic statistics of the datasets is presented in Table~\ref{table:dataset}.
+
+%\begin{table}[t]
+%	\centering
+%	\caption{Demographic Statistics of Real-World Datasets}
+%	\label{table:dataset}
+%	\scriptsize
+%	\begin{tabular} {l l l c c c c c c c}
+%		\toprule
+%		Dataset & Time Span & Entity & \multicolumn{7}{c}{Count}\\
+%		\midrule % In-table horizontal line
+%		\multirow{4}{*}{DBLP} & \multirow{4}{2cm}{From 1969 to 2016}
+%		& \multirow{2}{*}{Nodes}
+%		& $Author$ & $Paper$ & $Venue$ & $Term$ & & & \\
+%		& & & 15,929 & 37,077 & 38 & 12,028 & & & \\ % Content row 3
+%		\cmidrule{3-10}
+%		& & \multirow{2}{*}{Links}
+%		&  write & cite & publish & mention & & & \\
+%		& & & 100,797 & 165,904 & 42,872 & 284,156 & & & \\ % Content row 3
+%
+%		\midrule % In-table horizontal line
+%		\multirow{4}{*}{Delicious} & \multirow{4}{2cm}{From May 2006 to Oct 2010}
+%		& \multirow{2}{*}{Nodes}
+%		& $User$ & $Tag$ & $Bookmark$ & & & & \\
+%		& & & 1,714 & 21,956 & 30,998 & & & &  \\ % Content row 3
+%		\cmidrule{3-10}
+%		& & \multirow{2}{*}{Links}
+%		& contact & post & has-tag & & & & \\
+%		& & & 15,329 & 437,594 & 437,594 & & & & \\
+%		
+%		\midrule % In-table horizontal line
+%		\multirow{4}{*}{MovieLens} & \multirow{4}{2cm}{From Sep 1997 to Jan 2009}
+%		& \multirow{2}{*}{Nodes}
+%		& $User$ & $Movie$ & $Actor$ & $Director$ & $Genre$ & $Tag$ & $Country$ \\
+%		& & & 1,421 & 5,660 & 6,176 & 2,401 & 19 & 5,561 & 63 \\ % Content row 3
+%		\cmidrule{3-10}
+%		& & \multirow{2}{*}{Links}
+%		& rate & play-in & direct & has-genre & has-tag & produced-in & \\
+%		& & & 855,599 & 231,743 & 10,156 & 20,810 & 47,958 & 10,198 & \\
+%
+%		\bottomrule % Bottom horizontal line
+%	\end{tabular}
+%\end{table}
+
+
+\begin{table}[t]
+	\centering
+	\caption{Demographic Statistics of Real-World Datasets}
+	\label{table:dataset}
+	\footnotesize
+	\begin{tabular} {l l l l r l r}
+		\toprule
+		Dataset & Time Span & Entity & \multicolumn{4}{c}{Count}\\
+		\midrule % In-table horizontal line
+		\multirow{4}{*}{DBLP} & \multirow{4}{*}{From 1969 to 2016}
+		& \multirow{2}{*}{Nodes}
+		& $Author$ & 15,929 & $Venue$ & 38 \\ % Content row 1
+		& & & $Paper$ & 37,077 & $Term$ & 12,028 \\ % Content row 2
+		\cmidrule{3-7}
+		& & \multirow{2}{*}{Links}
+		& write & 100,797 & publish & 42,872 \\ % Content row 1
+		& & & cite & 165,904 & mention & 284,156 \\ % Content row 2
+		
+		\midrule % In-table horizontal line
+		\multirow{4}{*}{Delicious} & \multirow{4}{*}{From May 2006 to Oct 2010}
+		& \multirow{2}{*}{Nodes}
+		& $User$ & 1,714 & $Tag$ & 21,956 \\ % Content row 1
+		& & & $Bookmark$ & 30,998 & & \\ % Content row 3
+		\cmidrule{3-7}
+		& & \multirow{2}{*}{Links}
+		& contact & 15,329 & has-tag & 437,594 \\ % Content row 1
+		& & & post & 437,594 & & \\ % Content row 2
+		
+		\midrule % In-table horizontal line
+		\multirow{7}{*}{MovieLens} & \multirow{7}{*}{From Sep 1997 to Jan 2009}
+		& \multirow{4}{*}{Nodes}
+		& $User$ & 1,421 & $Genre$ & 19 \\ % Content row 1
+		& & & $Movie$ & 5,660 & $Tag$ & 5,561 \\ % Content row 2
+		& & & $Actor$ & 6,176 & $Country$ & 63 \\ % Content row 3
+		& & & $Director$ & 2,401 & & \\ % Content row 3
+		\cmidrule{3-7}
+		& & \multirow{3}{*}{Links}
+		& rate & 855,599 & has-genre & 20,810 \\ % Content row 1
+		& & & play-in & 231,743 & has-tag & 47,958 \\ % Content row 2
+		& & & direct & 10,156 & produced-in & 10,198 \\ % Content row 3
+		\bottomrule % Bottom horizontal line
+	\end{tabular}
+\end{table}
+
+\subsection{Experiment Settings}
+\subsubsection{Comparison Methods}
+To challenge the performance of \npglm, we use state-of-the-art GLM-based framework proposed in \cite{sun2012will} with Exponential, Rayleigh, and Weibull as distributions with different shapes, denoted as \textsc{Exp-Glm}, \textsc{Ray-Glm}, and \textsc{Wbl-Glm}, respectively. To examine the effect of considering the dynamicity of the network on performance of the models, we evaluate each one with two different feature sets: \emph{dynamic} and \emph{static}. Dynamic feature set is extracted using our proposed feature extraction framework and captures the dynamicity of the network. On the contrary, static feature set only uses the very last snapshot of the network just before the beginning of the observation window, failing to reflect its temporal dynamics. For all models, we consider the median of the distribution $f_T(t\mid\mb{x}_{test})$ as the predicted time for any test sample and then compare it to the ground truth time $t_{test}$.
+\subsubsection{Performance Measures}
+We assess different methods using a number of evaluation metrics which are described in the following:
+\begin{itemize}
+\item Mean Absolute Error (MAE): This metric measures the expected absolute error between the predicted time values and the ground truth:
+\[MAE(\mb{t},\hat{\mb{t}}) = \frac{1}{N}\sum_{i=1}^{N}\left|t_i-\hat{t}_i\right|\]
+\item Mean Relative Error (MRE): This metric calculates the expected relative absolute error between the predicted time values and the ground truth:
+\[MRE(\mb{t},\hat{\mb{t}}) = \frac{1}{N}\sum_{i=1}^{N}\left|\frac{t_i-\hat{t}_i}{t_i}\right|\]
+\item Root Mean Squared Error (RMSE): This metric computes the root of the expected squared error between the predicted time values and the ground truth:
+\[RMSE(\mb{t},\hat{\mb{t}}) = \sqrt{\frac{1}{N}\sum_{i=1}^{N}\left(t_i-\hat{t}_i\right)^2}\]
+\item Mean Squared Logarithmic Error (MSLE): This measures the expected value of the squared logarithmic error between the predicted time values and the ground truth:
+\[RMSE(\mb{t},\hat{\mb{t}}) = \frac{1}{N}\sum_{i=1}^{N}\left(\log{(1+t_i)}-log{(1+\hat{t}_i)}\right)^2\]
+\item Median Absolute Error (MDAE): It is the median of the absolute errors between the predicted time values and the ground truth:
+\[MDAE(\mb{t},\hat{\mb{t}}) = median(\left|t_1-\hat{t}_1\right|\dots\left|t_N-\hat{t}_N\right|)\]
+\item Maximum Threshold Prediction Accuracy (ACC): This measures for what fraction of samples, a model have a lower absolute error than a given threshold:
+\[ACC(\mb{t},\hat{\mb{t}})=\frac{1}{N}\sum_{i=1}^{N}\mb{1}\left(\left|t_i-\hat{t}_i\right| < threshold\right)\]
+\item Concordance Index (CI): This metric is one of the most widely used performance measures for survival models that estimates how good a model performs at ranking predicted times \cite{harrell1982evaluating}. It can be seen as the fraction of all pairs of samples whose predicted times are correctly ordered among all samples that can be ordered, and is considered as the generalization of the Area Under Receiver Operating Characteristic Curve (AUC) when we are dealing with censored data \cite{steck2008ranking}.
+\end{itemize}
+
+%We use 5-fold cross-validation and report the average results for all the experiments in this section. 
+\subsubsection{Experiment Setup}
+
+
+For DBLP dataset, we confine the data samples to those authors who have published more than 5 papers in the feature extraction window of each experiment. Following the triple building blocks described for feature extraction in Section~\ref{sec:features}, and using the similarity meta-paths in Table~\ref{table:meta}, we start the feature extraction process with 19 meta-paths. In all experiments, the author citation relation ($A\rightarrow P\rightarrow P\leftarrow A$) is chosen as the target relation. 
+For the case of Delicious dataset, we select user-user relation ($U\leftrightarrow U$) as the target relation, and design 6 meta-paths via the similarity meta-paths in Table~\ref{table:meta}.
+Regarding the MovieLens dataset, we limit the actor list to the top three for each movie. To imply a notion of ``like'' relation between user and movie, we only consider ratings above 4 in scale of 5. For this dataset, the target relation is set to user rate movie ($U\rightarrow M$), based on which, we design 11 final meta-paths. For the sake of convenience, we convert the scale of time differences from timestamp to month in Delicious and MovieLens datasets.
+
+We implemented the LSTM autoencoder using Keras deep learning library \cite{chollet2015keras}. We used mean square error loss function and Adadelta optimizer \cite{zeiler2012adadelta} with default parameters. For all datasets, we set the dimension of the encoded feature as twice as the input dimension. For Np-Glm the data samples were ordered according to their corresponding time variables, as the model needs the samples sorted by their recorded time. In all experiments, we pick an equal number of censored samples as the observed ones, uniformly at random. We use 5-fold cross-validation and report the average results for all the experiments in this section.
+
+\subsection{Experiment Results}
+In the rest of this section, we first assess how well different methods perform on various datasets and compare their performance based on different measures. Next, we analyze the effect of different parameters and problem configurations on the performance of competitive methods.
+
+\begin{table}[t]
+	\centering
+	\caption{Performance Comparison of Different Methods on Different Datasets}
+	\label{table:results}
+	\footnotesize
+	\begin{tabu} to \columnwidth {c c l r r r r r r}
+		\toprule
+		%\cmidrule(l){2-3} \cmidrule{5-7}
+		Dataset & Feature &
+		Model &  MAE &   MRE &   RMSE &   MSLE &   MDAE &  CI \\
+		\midrule
+		\multirow{8}{*}{\rotatebox{90}{DBLP}}
+		& \multirow{4}{*}{\rotatebox{90}{Dynamic}}
+		& \npglm  &  $\bm{1.99}$ &  $\bm{0.95}$ &   $\bm{2.43}$ &   $\bm{0.30}$ &  $\bm{1.73}$ & $\bm{0.62}$ \\
+		& & \textsc{Wbl-Glm} &  2.33 &  1.10 &   2.85 &   0.36 &   2.08 & 0.58 \\
+		& & \textsc{Exp-Glm} &  3.11 &  1.39 &   3.88 &   0.52 &   2.58 & 0.50 \\
+		& & \textsc{Ray-Glm} &  4.02 &  1.83 &   4.70 &   0.66 &   3.72 & 0.35 \\
+		
+		\cmidrule{2-9}                                                                            
+		& \multirow{4}{*}{\rotatebox{90}{Static}}                                                  
+		& \npglm               &  2.76 &  1.35 &   3.07 &   0.44 &   2.88 & 0.26 \\
+		& & \textsc{Wbl-Glm}     &  2.81 &  1.38 &   3.16 &   0.45 &   2.88 & 0.48 \\
+		& & \textsc{Exp-Glm}     &  3.28 &  1.57 &   3.70 &   0.53 &   3.30 & 0.14 \\
+		& & \textsc{Ray-Glm}     &  5.04 &  2.28 &   5.26 &   0.85 &   5.12 & 0.01 \\
+		
+		\midrule
+		\multirow{8}{*}{\rotatebox{90}{Delicious}}
+		& \multirow{4}{*}{\rotatebox{90}{Dynamic}}
+		& \npglm  &  $\bm{2.10}$ &  $\bm{1.20}$ &   $\bm{2.55}$ &   $\bm{0.35}$ &   $\bm{2.05}$ & $\bm{0.70}$ \\
+		& & \textsc{Wbl-Glm} &  2.37 &  1.31 &   2.89 &   0.40 &   2.16 & 0.57 \\
+		& & \textsc{Exp-Glm} &  3.21 &  1.58 &   3.84 &   0.54 &   2.89 & 0.55 \\
+		& & \textsc{Ray-Glm} &  3.90 &  2.07 &   4.66 &   0.68 &   3.91 & 0.40 \\
+		
+		\cmidrule{2-9}                 
+		& \multirow{4}{*}{\rotatebox{90}{Static}}                                                  
+		& \npglm               &  2.33 &  1.46 &   2.80 &   0.41 &   2.17 & 0.61 \\
+		& & \textsc{Wbl-Glm}     &  2.65 &  1.62 &   3.23 &   0.47 &   2.26 & 0.43 \\
+		& & \textsc{Exp-Glm}     &  3.35 &  1.91 &   4.17 &   0.59 &   2.75 & 0.35 \\
+		& & \textsc{Ray-Glm}     &  4.81 &  2.61 &   5.27 &   0.85 &   4.28 & 0.12 \\
+		
+		\midrule
+		\multirow{8}{*}{\rotatebox{90}{MovieLens}}
+		& \multirow{4}{*}{\rotatebox{90}{Dynamic}}
+		& \npglm  &  $\bm{2.48}$ &  $\bm{3.08}$ &   $\bm{3.04}$ &   $\bm{0.55}$ &  $\bm{2.14}$ & $\bm{0.70}$ \\
+		& & \textsc{Wbl-Glm} &  3.06 &  3.61 &   3.79 &   0.65 &   2.60 & 0.56 \\
+		& & \textsc{Exp-Glm} &  3.79 &  2.70 &   4.60 &   0.78 &   3.48 & 0.45 \\
+		& & \textsc{Ray-Glm} &  4.98 &  3.58 &   5.63 &   1.05 &   4.83 & 0.33 \\
+		
+		\cmidrule{2-9}                                                                            
+		& \multirow{4}{*}{\rotatebox{90}{Static}}                                                  
+		& \npglm               &  2.92 &  3.44 &   3.45 &   0.67 &   3.36 & 0.50 \\
+		& & \textsc{Wbl-Glm}     &  2.99 &  3.52 &   3.51 &   0.69 &   3.37 & 0.49 \\
+		& & \textsc{Exp-Glm}     &  3.42 &  2.89 &   3.86 &   0.78 &   3.82 & 0.49 \\
+		& & \textsc{Ray-Glm}     &  5.32 &  4.06 &   5.62 &   1.17 &   5.70 & 0.20 \\
+		
+		\bottomrule
+	\end{tabu}
+\end{table}
+
+\begin{figure*}[t]
+	\centering
+	%\hfill
+	\subfloat[DBLP]{
+		\begin{tikzpicture}[trim axis left, trim axis right]
+		\begin{axis}
+		[
+		tiny,
+		width=0.35\columnwidth,
+		height=4.5cm,
+		legend pos=north west,
+		legend style={font=\tiny,nodes={scale=0.75, transform shape}},
+		grid,
+		y tick label style={
+			/pgf/number format/.cd,
+			fixed,
+			fixed zerofill,
+			precision=1,
+			/tikz/.cd
+		},
+		xlabel=Absolute Error,
+		ylabel=Prediction Accuracy,
+		ylabel shift = -4 pt,
+		%xticklabel style={rotate=90},
+		ymax=1.1,
+		xmin=0,
+		xmax=3.5,
+		ytick={0.1,0.2,...,0.9,1.0},
+		xtick={0.5,1.0,...,3},
+		%		restrict x to domain=0:900,
+		legend entries={NP-GLM, WBL-GLM, EXP-GLM, RAY-GLM},
+		]
+		\addplot[color=purple,mark=square*,mark size=1.1,thick] table{results/db_np.txt};
+		\addplot[color=cyan,mark=triangle*,mark size=1.1,thick] table{results/db_wbl.txt};
+		\addplot[color=orange,mark=*,mark size=1.5,thick] table{results/db_exp.txt};
+		\addplot[color=green,mark=diamond*,mark size=1.5,thick] table{results/db_ray.txt};
+		\end{axis}
+		\end{tikzpicture}
+	}
+	\hfil
+	\subfloat[Delicious]{
+		\begin{tikzpicture}[trim axis left, trim axis right]
+		\begin{axis}
+		[
+		tiny,
+		width=0.35\columnwidth,
+		height=4.5cm,
+		legend pos=north west,
+		legend style={font=\tiny,nodes={scale=0.75, transform shape}},
+		grid,
+		y tick label style={
+			/pgf/number format/.cd,
+			fixed,
+			fixed zerofill,
+			precision=1,
+			/tikz/.cd
+		},
+		xlabel=Absolute Error,
+		ylabel=Prediction Accuracy,
+		ylabel shift = -4 pt,
+		%xticklabel style={rotate=90},
+		ymax=1.1,
+		xmin=0,
+		xmax=3.5,
+		ytick={0.1,0.2,...,0.9,1.0},
+		xtick={0.5,1.0,...,3},
+		%		restrict x to domain=0:900,
+		legend entries={NP-GLM, WBL-GLM, EXP-GLM, RAY-GLM},
+		]
+		\addplot[color=purple,mark=square*,mark size=1.1,thick] table{results/dl_np.txt};
+		\addplot[color=cyan,mark=triangle*,mark size=1.1,thick] table{results/dl_wbl.txt};
+		\addplot[color=orange,mark=*,mark size=1.5,thick] table{results/dl_exp.txt};
+		\addplot[color=green,mark=diamond*,mark size=1.5,thick] table{results/dl_ray.txt};
+		\end{axis}
+		\end{tikzpicture}
+	}
+	\hfil
+	\subfloat[MovieLens]{
+		\begin{tikzpicture}[trim axis left, trim axis right]
+		\begin{axis}
+		[
+		tiny,
+		width=0.35\columnwidth,
+		height=4.5cm,
+		legend pos=north west,
+		legend style={font=\tiny,nodes={scale=0.75, transform shape}},
+		grid,
+		y tick label style={
+			/pgf/number format/.cd,
+			fixed,
+			fixed zerofill,
+			precision=1,
+			/tikz/.cd
+		},
+		xlabel=Absolute Error,
+		ylabel=Prediction Accuracy,
+		ylabel shift = -4 pt,
+		%xticklabel style={rotate=90},
+		ymax=1.1,
+		xmin=0,
+		xmax=3.5,
+		ytick={0.1,0.2,...,0.9,1.0},
+		xtick={0.5,1.0,...,3},
+		%		restrict x to domain=0:900,
+		legend entries={NP-GLM, WBL-GLM, EXP-GLM, RAY-GLM},
+		]
+		\addplot[color=purple,mark=square*,mark size=1.1,thick] table{results/mv_np.txt};
+		\addplot[color=cyan,mark=triangle*,mark size=1.1,thick] table{results/mv_wbl.txt};
+		\addplot[color=orange,mark=*,mark size=1.5,thick] table{results/mv_exp.txt};
+		\addplot[color=green,mark=diamond*,mark size=1.5,thick] table{results/mv_ray.txt};
+		\end{axis}
+		\end{tikzpicture}
+	}
+	\caption{Prediction accuracy of different methods vs the maximum tolerated absolute error on different datasets.}
+	\label{fig:real}
+\end{figure*}
+
+\begin{figure}[t]
+	\centering
+	\subfloat[Mean Absolute Error]{
+		\begin{tikzpicture}[trim axis left, trim axis right]
+		\begin{axis}
+		[
+		tiny,
+		width=0.4\columnwidth,
+		height=4.5cm,
+		legend pos=north east,
+		legend style={font=\tiny,nodes={scale=0.75, transform shape}},
+		grid,
+		y tick label style={
+			/pgf/number format/.cd,
+			fixed,
+			fixed zerofill,
+			precision=1,
+			/tikz/.cd
+		},
+		xlabel=\# Snapshots,
+		ylabel=MAE,
+		ylabel shift = -4 pt,
+		%xticklabel style={rotate=90},
+		%		ymax=1.1,
+		xmin=0,
+		xmax=21,
+		%		ytick={0.1,0.2,...,0.9,1.0},
+		xtick={3,6,...,18},
+		%		restrict x to domain=0:900,
+		legend entries={NP-GLM, WBL-GLM},
+		]
+		\addplot[color=purple,mark=square*,mark size=1.1,thick] table{results/dl_snap_mae_np.txt};
+		\addplot[color=cyan,mark=triangle*,mark size=1.1,thick] table{results/dl_snap_mae_wbl.txt};
+		\end{axis}
+		\end{tikzpicture}
+	}
+	\hfil
+	\subfloat[Concordance Index]{
+		\begin{tikzpicture}[trim axis left, trim axis right]
+		\begin{axis}
+		[
+		tiny,
+		width=0.4\columnwidth,
+		height=4.5cm,
+		legend pos=north west,
+		legend style={font=\tiny,nodes={scale=0.75, transform shape}},
+		grid,
+		y tick label style={
+			/pgf/number format/.cd,
+			fixed,
+			fixed zerofill,
+			precision=1,
+			/tikz/.cd
+		},
+		xlabel=\# Snapshots,
+		ylabel=CI,
+		ylabel shift = -4 pt,
+		%xticklabel style={rotate=90},
+		%		ymax=1.1,
+		xmin=0,
+		%		xmax=3.5,
+		%		ytick={0.1,0.2,...,0.9,1.0},
+		xtick={3,6,...,18},
+		%		restrict x to domain=0:900,
+		legend entries={NP-GLM, WBL-GLM},
+		]
+		\addplot[color=purple,mark=square*,mark size=1.1,thick] table{results/dl_snap_ci_np.txt};
+		\addplot[color=cyan,mark=triangle*,mark size=1.1,thick] table{results/dl_snap_ci_wbl.txt};
+		\end{axis}
+		\end{tikzpicture}
+	}
+	\caption{Effect of choosing different number of snapshots on performance of different methods using Delicious dataset.}
+	\label{fig:snaps:delicious}
+\end{figure}
+
+
+\begin{figure}[t]
+	\centering
+	\subfloat[Mean Absolute Error]{
+		\begin{tikzpicture}[trim axis left, trim axis right]
+		\begin{axis}
+		[
+		tiny,
+		width=0.4\columnwidth,
+		height=4.5cm,
+		legend pos=north east,
+		legend style={font=\tiny,nodes={scale=0.75, transform shape}},
+		grid,
+		y tick label style={
+			/pgf/number format/.cd,
+			fixed,
+			fixed zerofill,
+			precision=1,
+			/tikz/.cd
+		},
+		xlabel=\# Snapshots,
+		ylabel=MAE,
+		ylabel shift = -4 pt,
+		%xticklabel style={rotate=90},
+		%				ymax=18,ymin=10,
+		xmin=0,
+		%		xmax=3.5,
+		%		ytick={0.1,0.2,...,0.9,1.0},
+		xtick={3,6,...,18},
+		%		restrict x to domain=0:900,
+		legend entries={NP-GLM, WBL-GLM},
+		]
+		\addplot[color=purple,mark=square*,mark size=1.1,thick] table{results/mv_snap_mae_np.txt};
+		\addplot[color=cyan,mark=triangle*,mark size=1.1,thick] table{results/mv_snap_mae_wbl.txt};
+		\end{axis}
+		\end{tikzpicture}
+	}
+	\hfil
+	\subfloat[Concordance Index]{
+		\begin{tikzpicture}[trim axis left, trim axis right]
+		\begin{axis}
+		[
+		tiny,
+		width=0.4\columnwidth,
+		height=4.5cm,
+		legend pos=north west,
+		legend style={font=\tiny,nodes={scale=0.75, transform shape}},
+		grid,
+		y tick label style={
+			/pgf/number format/.cd,
+			fixed,
+			fixed zerofill,
+			precision=1,
+			/tikz/.cd
+		},
+		xlabel=\# Snapshots,
+		ylabel=CI,
+		ylabel shift = -4 pt,
+		%xticklabel style={rotate=90},
+		ymax=0.9,ymin=0.2,
+		xmin=0,
+		%		xmax=3.5,
+		%		ytick={0.1,0.2,...,0.9,1.0},
+		xtick={3,6,...,18},
+		%		restrict x to domain=0:900,
+		legend entries={NP-GLM, WBL-GLM},
+		]
+		\addplot[color=purple,mark=square*,mark size=1.1,thick] table{results/mv_snap_ci_np.txt};
+		\addplot[color=cyan,mark=triangle*,mark size=1.1,thick] table{results/mv_snap_ci_wbl.txt};
+		\end{axis}
+		\end{tikzpicture}
+	}
+	\caption{Effect of choosing different number of snapshots on performance of different methods using MovieLens dataset.}
+	\label{fig:snaps:MovieLens}
+\end{figure}
+
+\begin{figure}[t]
+	\centering
+	\subfloat[Mean Absolute Error]{
+		\begin{tikzpicture}[trim axis left, trim axis right]
+		\begin{axis}
+		[
+		tiny,
+		width=0.4\columnwidth,
+		height=4.5cm,
+		legend pos=north east,
+		legend style={font=\tiny,nodes={scale=0.75, transform shape}},
+		grid,
+		y tick label style={
+			/pgf/number format/.cd,
+			fixed,
+			fixed zerofill,
+			precision=1,
+			/tikz/.cd
+		},
+		xlabel=$\Delta$,
+		ylabel=MAE,
+		ylabel shift = -4 pt,
+		%xticklabel style={rotate=90},
+		%		ymax=1.1,
+		xmin=0,
+		xmax=3.5,
+		%		ytick={0.1,0.2,...,0.9,1.0},
+		xtick={0.5,1.0,...,3},
+		%		restrict x to domain=0:900,
+		legend entries={NP-GLM, WBL-GLM},
+		]
+		\addplot[color=purple,mark=square*,mark size=1.1,thick] table{results/delta_mae_np.txt};
+		\addplot[color=cyan,mark=triangle*,mark size=1.1,thick] table{results/delta_mae_wbl.txt};
+		\end{axis}
+		\end{tikzpicture}
+	}
+	\hfil
+	\subfloat[Concordance Index]{
+		\begin{tikzpicture}[trim axis left, trim axis right]
+		\begin{axis}
+		[
+		tiny,
+		width=0.4\columnwidth,
+		height=4.5cm,
+		legend pos=north west,
+		legend style={font=\tiny,nodes={scale=0.75, transform shape}},
+		grid,
+		y tick label style={
+			/pgf/number format/.cd,
+			fixed,
+			fixed zerofill,
+			precision=1,
+			/tikz/.cd
+		},
+		xlabel=$\Delta$,
+		ylabel=CI,
+		ylabel shift = -4 pt,
+		%xticklabel style={rotate=90},
+		%		ymax=1.1,
+		xmin=0,
+		xmax=3.5,
+		%		ytick={0.1,0.2,...,0.9,1.0},
+		xtick={0.5,1.0,...,3},
+		%		restrict x to domain=0:900,
+		legend entries={NP-GLM, WBL-GLM},
+		]
+		\addplot[color=purple,mark=square*,mark size=1.1,thick] table{results/delta_ci_np.txt};
+		\addplot[color=cyan,mark=triangle*,mark size=1.1,thick] table{results/delta_ci_wbl.txt};
+		\end{axis}
+		\end{tikzpicture}
+	}
+	\caption{Effect of choosing different values for $\Delta$ on performance of different methods using Delicious dataset.}
+	\label{fig:delta:delicious}
+\end{figure}
+
+
+\begin{figure}[t]
+	\centering
+	\subfloat[Mean Absolute Error]{
+		\begin{tikzpicture}[trim axis left, trim axis right]
+		\begin{axis}
+		[
+		tiny,
+		width=0.4\columnwidth,
+		height=4.5cm,
+		legend pos=north east,
+		legend style={font=\tiny,nodes={scale=0.75, transform shape}},
+		grid,
+		y tick label style={
+			/pgf/number format/.cd,
+			fixed,
+			fixed zerofill,
+			precision=1,
+			/tikz/.cd
+		},
+		xlabel=$\Delta$,
+		ylabel=MAE,
+		ylabel shift = -4 pt,
+		%xticklabel style={rotate=90},
+		ymax=18,ymin=10,
+		xmin=0,
+		xmax=3.5,
+		%		ytick={0.1,0.2,...,0.9,1.0},
+		xtick={0.5,1.0,...,3},
+		%		restrict x to domain=0:900,
+		legend entries={NP-GLM, WBL-GLM},
+		]
+		\addplot[color=purple,mark=square*,mark size=1.1,thick] table{results/mv_delta_mae_np.txt};
+		\addplot[color=cyan,mark=triangle*,mark size=1.1,thick] table{results/mv_delta_mae_wbl.txt};
+		\end{axis}
+		\end{tikzpicture}
+	}
+	\hfil
+	\subfloat[Concordance Index]{
+		\begin{tikzpicture}[trim axis left, trim axis right]
+		\begin{axis}
+		[
+		tiny,
+		width=0.4\columnwidth,
+		height=4.5cm,
+		legend pos=north west,
+		legend style={font=\tiny,nodes={scale=0.75, transform shape}},
+		grid,
+		y tick label style={
+			/pgf/number format/.cd,
+			fixed,
+			fixed zerofill,
+			precision=1,
+			/tikz/.cd
+		},
+		xlabel=$\Delta$,
+		ylabel=CI,
+		ylabel shift = -4 pt,
+		%xticklabel style={rotate=90},
+		ymax=0.9,ymin=0.2,
+		xmin=0,
+		xmax=3.5,
+		%		ytick={0.1,0.2,...,0.9,1.0},
+		xtick={0.5,1.0,...,3},
+		%		restrict x to domain=0:900,
+		legend entries={NP-GLM, WBL-GLM},
+		]
+		\addplot[color=purple,mark=square*,mark size=1.1,thick] table{results/mv_delta_ci_np.txt};
+		\addplot[color=cyan,mark=triangle*,mark size=1.1,thick] table{results/mv_delta_ci_wbl.txt};
+		\end{axis}
+		\end{tikzpicture}
+	}
+	\caption{Effect of choosing different values for $\Delta$ on performance of different methods using MovieLens dataset.}
+	\label{fig:delta:MovieLens}
+\end{figure}
+
+\subsubsection{Comparative Performance Analysis}
+In the first set of experiments, we evaluate the prediction power of different models on DBLP, Delicious and MovieLens datasets. For all cases, we set $\Delta=1$ and $\Omega=6$. For DBLP dataset, the number of snapshots $k$ was set to 6, while for the other two datasets we set $k=12$. MAE, MRE, RMSE, MSLE, MDAE and CI of all models using both dynamic and static feature sets has been shown in Table~\ref{table:results}. We see that in all three networks, \npglm using the dynamic features is superior to the other models under all performance measures. For instance, our model \npglm can obtain an MAE of 1.99 for DBLP dataset, which is 15\% lower than the MAE obtained by its closest competitor, \textsc{Wbl-Glm}. As of CI, \npglm achieves 0.62 on DBLP, which is 7\% better than \textsc{Wbl-Glm}. 
+On Delicious dataset, \npglm improves MAE and CI by 11\% and 23\%, respectively, relative to \textsc{Wbl-Glm}. Similarly, \npglm reduces MAE by 19\% and increases CI by 25\%. Comparable results hold for other performance measures as well. Moreover, in this table it is evident that using the dynamic features has a positive impact on the performance of all models.
+
+In the next experiment, we investigate the performance of different methods using the dynamic feature set under maximum threshold prediction accuracy. In other words, to evaluate the prediction accuracy of a model, we record the fraction of test samples for which the difference between their true times and predicted ones are lower than a given threshold, called \emph{tolerated error}. The parameter settings for feature extraction ($\Delta$, $\Omega$, and $k$) is the same as the configuration in Table~\ref{table:results}. The results for different tolerated errors in range $\{0.5, 1.0, \dots, 3.0\}$ were plotted in Fig~\ref{fig:real}. The results demonstrate that \npglm can achieve a higher accuracy in all cases relative to other baselines.
+
+
+\subsubsection{Parameter Setting Analysis.}
+The performance of different models is influenced by two parameters, the number of snapshots $k$, and the time difference between snapshots $\Delta$, as these parameters determine the length of the feature extraction window $\Phi$. In this set of experiments, we investigate how these parameters affect the performance of our model \npglm and its closest competitor \textsc{Wbl-Glm} on Delicious and MovieLens datasets. 
+
+The effect of increasing the number of snapshots on achieved MAE and CI by \npglm and \textsc{Wbl-Glm} over Delicious and MovieLens datasets is illustrated in Fig~\ref{fig:snaps:delicious} and Fig~\ref{fig:snaps:MovieLens}, respectively. For both datasets, we set $\Delta=1.5$ and $\Omega=18$ and varied the number of snapshots in the range of 3 to 18. As we can see in both figures, increasing the number of snapshots results in lower prediction error and higher accuracy. This is due to the fact that as the number of snapshots grows, a longer history of the network is taken into account. 
+
+Finally, the impact of choosing different values for $\Delta$ is analyzed on the performance of \npglm and \textsc{Wbl-Glm} in terms of MAE and CI. The results for Delicious and MovieLens datasets are depicted in Fig~\ref{fig:delta:delicious} and Fig~\ref{fig:delta:MovieLens}, respectively. In this experiment, number of snapshots and observation window length are accordingly set to 6 and 24. Different values of $\Delta$ are selected from the set $\{0.5,1.0,\dots,3.0\}$. As illustrated in both figures, by increasing  $\Delta$ up to an extent, we witness that the performance of models improves gradually. That is because increasing the value of $\Delta$ leads to a wider feature extraction window. However, since the number of snapshots is constant, we see no performance improvement when the value of $\Delta$ becomes greater than a certain threshold. This is due to the fact that short term temporal evolution of the network will be ignored when the value of $\Delta$ becomes too wide.
+ 
+
+
+

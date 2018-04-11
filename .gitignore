@@ -1,7 +1,0 @@
-.idea
-
-/codes/features/dblp/data/
-/codes/features/delicious/data/
-/codes/features/movielens/data/
-
-*.pyc
