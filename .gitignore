@@ -1,0 +1,8 @@
+.idea
+
+results
+features/dblp/data/
+features/delicious/data/
+features/movielens/data/
+
+*.pyc
