@@ -391,7 +391,7 @@ def run(delta, observation_window, n_snapshots):
     dir_path = os.path.dirname(os.path.realpath(__file__))
     cur_path = os.getcwd()
     os.chdir(dir_path)
-    logging.basicConfig(level=logging.ERROR, format='%(asctime)s: %(message)s', datefmt='%H:%M:%S')
+    logging.basicConfig(level=logging.INFO, format='%(asctime)s: %(message)s', datefmt='%H:%M:%S')
 
     conf_list = {
         'db': [
